@@ -10,6 +10,7 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  final Color mainColor = const Color(0xFF0A9830);
   int _currentStep = 0;
   String? _selectedUserType;
   final _formKey = GlobalKey<FormState>();
@@ -55,7 +56,7 @@ class _RegisterPageState extends State<RegisterPage> {
             height: MediaQuery.of(context).size.height * 0.65,
             child: Container(
               decoration: const BoxDecoration(
-                color: Colors.green,
+                color: Color(0xFF0A9830),
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(50),
                 ),
@@ -125,6 +126,49 @@ class _RegisterPageState extends State<RegisterPage> {
                                 height: 1,
                                 endIndent: 245,
                               ),
+                              if (_currentStep == 0) ...[
+                                const Text(
+                                  'ประเภทสมาชิก',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const Text(
+                                  'คุณต้องการเป็นสมาชิกแบบใด ?',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ] else if (_currentStep == 1) ...[
+                                const Text(
+                                  'กรอกข้อมูลที่จำเป็น',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const Text(
+                                  'ข่อมูลของคุณจะถูกเก็บเป็นความลับ ?',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ] else if (_currentStep == 2) ...[
+                                const Text(
+                                  'ขอบคุณสำหรับการสมัรสมาชิก',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const Text(
+                                  'อาหารแสนอร่อยรอคุณอยู่...',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
                               const SizedBox(height: 16),
                               Row(
                                 children: List.generate(3, (index) {
@@ -235,13 +279,19 @@ class _RegisterPageState extends State<RegisterPage> {
                                   children: [
                                     TextFormField(
                                       controller: _phoneController,
-                                      decoration: const InputDecoration(
+                                      decoration: InputDecoration(
                                         labelText: 'เบอร์โทร',
-                                        border: OutlineInputBorder(),
+                                        border: const OutlineInputBorder(),
+                                        enabledBorder: const OutlineInputBorder(
+                                          borderSide:
+                                              BorderSide(color: Colors.grey),
+                                        ),
                                         focusedBorder: OutlineInputBorder(
                                           borderSide: BorderSide(
-                                              color: Colors.green, width: 2.0),
+                                              color: mainColor, width: 2.0),
                                         ),
+                                        floatingLabelStyle:
+                                            TextStyle(color: mainColor),
                                       ),
                                       keyboardType: TextInputType.phone,
                                       inputFormatters: [
@@ -261,13 +311,19 @@ class _RegisterPageState extends State<RegisterPage> {
                                     const SizedBox(height: 16),
                                     TextFormField(
                                       controller: _fullNameController,
-                                      decoration: const InputDecoration(
+                                      decoration: InputDecoration(
                                         labelText: 'ชื่อ-นามสกุล',
-                                        border: OutlineInputBorder(),
+                                        border: const OutlineInputBorder(),
+                                        enabledBorder: const OutlineInputBorder(
+                                          borderSide:
+                                              BorderSide(color: Colors.grey),
+                                        ),
                                         focusedBorder: OutlineInputBorder(
                                           borderSide: BorderSide(
-                                              color: Colors.green, width: 2.0),
+                                              color: mainColor, width: 2.0),
                                         ),
+                                        floatingLabelStyle:
+                                            TextStyle(color: mainColor),
                                       ),
                                       validator: (value) {
                                         if (value == null || value.isEmpty) {
@@ -281,11 +337,17 @@ class _RegisterPageState extends State<RegisterPage> {
                                       controller: _passwordController,
                                       decoration: InputDecoration(
                                         labelText: 'รหัสผ่าน',
-                                        border: OutlineInputBorder(),
+                                        border: const OutlineInputBorder(),
+                                        enabledBorder: const OutlineInputBorder(
+                                          borderSide:
+                                              BorderSide(color: Colors.grey),
+                                        ),
                                         focusedBorder: OutlineInputBorder(
                                           borderSide: BorderSide(
-                                              color: Colors.green, width: 2.0),
+                                              color: mainColor, width: 2.0),
                                         ),
+                                        floatingLabelStyle:
+                                            TextStyle(color: mainColor),
                                         suffixIcon: _passwordController
                                                 .text.isNotEmpty
                                             ? IconButton(
@@ -322,11 +384,17 @@ class _RegisterPageState extends State<RegisterPage> {
                                       controller: _confirmPasswordController,
                                       decoration: InputDecoration(
                                         labelText: 'ยืนยันรหัสผ่าน',
-                                        border: OutlineInputBorder(),
+                                        border: const OutlineInputBorder(),
+                                        enabledBorder: const OutlineInputBorder(
+                                          borderSide:
+                                              BorderSide(color: Colors.grey),
+                                        ),
                                         focusedBorder: OutlineInputBorder(
                                           borderSide: BorderSide(
-                                              color: Colors.green, width: 2.0),
+                                              color: mainColor, width: 2.0),
                                         ),
+                                        floatingLabelStyle:
+                                            TextStyle(color: mainColor),
                                         suffixIcon: _confirmPasswordController
                                                 .text.isNotEmpty
                                             ? IconButton(
@@ -361,13 +429,19 @@ class _RegisterPageState extends State<RegisterPage> {
                                     const SizedBox(height: 16),
                                     TextFormField(
                                       controller: _addressController,
-                                      decoration: const InputDecoration(
+                                      decoration: InputDecoration(
                                         labelText: 'ที่อยู่',
-                                        border: OutlineInputBorder(),
+                                        border: const OutlineInputBorder(),
+                                        enabledBorder: const OutlineInputBorder(
+                                          borderSide:
+                                              BorderSide(color: Colors.grey),
+                                        ),
                                         focusedBorder: OutlineInputBorder(
                                           borderSide: BorderSide(
-                                              color: Colors.green, width: 2.0),
+                                              color: mainColor, width: 2.0),
                                         ),
+                                        floatingLabelStyle:
+                                            TextStyle(color: mainColor),
                                       ),
                                       validator: (value) {
                                         if (value == null || value.isEmpty) {

@@ -9,6 +9,7 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final Color mainColor = const Color(0xFF0A9830);
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscureText = true;
@@ -49,7 +50,7 @@ class _LoginPageState extends State<LoginPage> {
             height: MediaQuery.of(context).size.height * 0.65,
             child: Container(
               decoration: const BoxDecoration(
-                color: Colors.green,
+                color: Color(0xFF0A9830),
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(50),
                 ),
@@ -106,24 +107,40 @@ class _LoginPageState extends State<LoginPage> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              TextField(
+                              TextFormField(
                                 controller: _phoneController,
-                                decoration: const InputDecoration(
-                                  hintText: 'เบอร์โทรศัพท์',
-                                  border: OutlineInputBorder(),
+                                decoration: InputDecoration(
+                                  labelText: 'เบอร์โทรศัพท์',
+                                  border: const OutlineInputBorder(),
+                                  enabledBorder: const OutlineInputBorder(
+                                    borderSide: BorderSide(color: Colors.grey),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderSide: BorderSide(
+                                        color: mainColor, width: 2.0),
+                                  ),
                                 ),
                                 keyboardType: TextInputType.phone,
                               ),
                               const SizedBox(height: 16),
-                              TextField(
+                              TextFormField(
                                 controller: _passwordController,
                                 decoration: InputDecoration(
-                                  hintText: 'รหัสผ่าน',
+                                  labelText: 'รหัสผ่าน',
                                   border: const OutlineInputBorder(),
+                                  enabledBorder: const OutlineInputBorder(
+                                    borderSide: BorderSide(color: Colors.grey),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderSide: BorderSide(
+                                        color: mainColor, width: 2.0),
+                                  ),
                                   suffixIcon: _showVisibilityIcon
                                       ? IconButton(
                                           icon: Icon(
-                                            _obscureText ? Icons.visibility_off : Icons.visibility,
+                                            _obscureText
+                                                ? Icons.visibility_off
+                                                : Icons.visibility,
                                             color: Colors.grey,
                                           ),
                                           onPressed: () {
@@ -153,7 +170,8 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                               const SizedBox(height: 16),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   TextButton(
                                     onPressed: () {
