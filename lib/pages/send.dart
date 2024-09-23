@@ -47,7 +47,7 @@ class _SendPageState extends State<SendPage> {
             ),
             GestureDetector(
               onTap: () {
-                context.push('/profile'); // สมมติว่ามีหน้าโปรไฟล์
+                context.go('/profile'); // สมมติว่ามีหน้าโปรไฟล์
               },
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,

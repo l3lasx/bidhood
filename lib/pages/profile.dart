@@ -45,7 +45,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             GestureDetector(
               onTap: () {
-                context.push('/profile'); // สมมติว่ามีหน้าโปรไฟล์
+                context.go('/profile'); // สมมติว่ามีหน้าโปรไฟล์
               },
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -270,6 +270,26 @@ class _ProfilePageState extends State<ProfilePage> {
                                 icon: const Icon(Icons.save),
                                 label: const Text(
                                   'บันทึกข้อมูล',
+                                  style: TextStyle(fontSize: 16),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 80),
+                            SizedBox(
+                              width: double.infinity, // ทำให้ปุ่มยืดเต็มความกว้าง
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  // ใส่การทำงานของปุ่มที่ 2 ตรงนี้
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 12),
+                                ),
+                                icon: const Icon(Icons.logout),
+                                label: const Text(
+                                  'ออกจากระบบ',
                                   style: TextStyle(fontSize: 16),
                                 ),
                               ),
