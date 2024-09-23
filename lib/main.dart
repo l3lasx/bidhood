@@ -1,6 +1,7 @@
 import 'package:bidhood/pages/login.dart';
-import 'package:bidhood/pages/register.dart';
 import 'package:bidhood/pages/percel.dart';
+import 'package:bidhood/pages/register.dart';
+import 'package:bidhood/pages/send.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -32,15 +33,13 @@ final GoRouter _router = GoRouter(
         GoRoute(
           path: '/percel',
           builder: (BuildContext context, GoRouterState state) {
-            return const UserPage();
+            return const PercelPage();
           },
         ),
         GoRoute(
           path: '/send',
           builder: (BuildContext context, GoRouterState state) {
-            return Container(
-              child: const Text("percel"),
-            );
+            return const SendPage();
           },
         ),
         GoRoute(

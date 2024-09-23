@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-class PercelPage extends StatefulWidget {
-  const PercelPage({super.key});
+class SendPage extends StatefulWidget {
+  const SendPage({super.key});
 
   @override
-  State<PercelPage> createState() => _PercelPageState();
+  State<SendPage> createState() => _SendPageState();
 }
 
-class _PercelPageState extends State<PercelPage> {
+class _SendPageState extends State<SendPage> {
   final Color mainColor = const Color(0xFF0A9830);
   final String userName = "John Doe"; // สมมติชื่อผู้ใช้
   int itemCount = 0; // Initial number of items set to 0
@@ -126,8 +126,7 @@ class _PercelPageState extends State<PercelPage> {
                 child: Column(
                   children: [
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -140,8 +139,24 @@ class _PercelPageState extends State<PercelPage> {
                             ),
                             child: Text(
                               'รายการจัดส่งทั้งหมด ($itemCount)',
-                              style:
-                                  const TextStyle(color: Colors.white, fontSize: 14),
+                              style: TextStyle(color: Colors.white, fontSize: 14),
+                            ),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              // ใส่การทำงานของปุ่มที่ 2 ตรงนี้
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF0A9876),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.add, color: Colors.white),
+                                SizedBox(width: 2),
+                                Text('สร้างรายการ',
+                                    style: TextStyle(color: Colors.white,  fontSize: 14)),
+                              ],
                             ),
                           ),
                         ],
@@ -149,7 +164,7 @@ class _PercelPageState extends State<PercelPage> {
                     ),
                     Expanded(
                       child: itemCount == 0
-                          ? const Center(
+                          ? Center(
                               child: Text(
                                 'คุณยังไม่มีการจัดส่งสินค้า',
                                 style: TextStyle(
@@ -161,8 +176,7 @@ class _PercelPageState extends State<PercelPage> {
                             )
                           : ListView.builder(
                               itemCount: itemCount,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8),
+                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               itemBuilder: (context, index) {
                                 return Padding(
                                   padding: const EdgeInsets.only(bottom: 8),
@@ -175,21 +189,18 @@ class _PercelPageState extends State<PercelPage> {
                                           color: Colors.grey.withOpacity(0.2),
                                           spreadRadius: 1,
                                           blurRadius: 3,
-                                          offset: const Offset(0, 2),
+                                          offset: Offset(0, 2),
                                         ),
                                       ],
                                     ),
                                     child: ListTile(
                                       title: Text(
                                         'รายการจัดส่งสินค้าที่ ${index + 1}',
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold),
+                                        style: TextStyle(fontWeight: FontWeight.bold),
                                       ),
-                                      subtitle: const Text('รายละเอียดการจัดส่ง'),
-                                      leading: Icon(Icons.local_shipping,
-                                          color: mainColor),
-                                      trailing: const Icon(Icons.arrow_forward_ios,
-                                          color: Colors.grey),
+                                      subtitle: Text('รายละเอียดการจัดส่ง'),
+                                      leading: Icon(Icons.local_shipping, color: mainColor),
+                                      trailing: Icon(Icons.arrow_forward_ios, color: Colors.grey),
                                       onTap: () {
                                         // Handle item tap
                                       },
@@ -208,7 +219,7 @@ class _PercelPageState extends State<PercelPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: incrementItemCount,
-        child: const Icon(Icons.add),
+        child: Icon(Icons.add),
         backgroundColor: mainColor,
       ),
     );
