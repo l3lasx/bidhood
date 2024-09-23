@@ -12,6 +12,7 @@ class FindUserPage extends StatefulWidget {
 class _FindUserPageState extends State<FindUserPage> {
   final Color mainColor = const Color(0xFF0A9830);
   final String userName = "John Doe"; // สมมติชื่อผู้ใช้
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -114,121 +115,60 @@ class _FindUserPageState extends State<FindUserPage> {
             right: 0,
             bottom: 0,
             child: SafeArea(
-              child: Container(
-                width: double.infinity,
-                height: MediaQuery.of(context).size.height * 0.7,
-                child: SingleChildScrollView(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: TextField(
-                                    decoration: InputDecoration(
-                                      hintText: 'ค้นหา...',
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                              vertical: 8, horizontal: 16),
-                                    ),
-                                    onChanged: (value) {
-                                      // ใส่โค้ดสำหรับการค้นหาตรงนี้
-                                    },
-                                  ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _searchController,
+                              decoration: InputDecoration(
+                                hintText: 'ค้นหาผู้ใช้',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(30),
                                 ),
-                                const SizedBox(width: 8),
-                                ElevatedButton.icon(
-                                  onPressed: () {
-                                    // ใส่การทำงานของปุ่มที่ 2 ตรงนี้
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.black,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 8),
-                                  ),
-                                  label: const Text(
-                                    'ค้นหา',
-                                    style: TextStyle(fontSize: 14),
-                                  ),
-                                  icon: const Icon(Icons.search),
-                                ),
-                              ],
+                                contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                              ),
                             ),
-                            const UserCard(
+                          ),
+                          SizedBox(width: 10),
+                          ElevatedButton(
+                            onPressed: () {
+                              // Implement search functionality here
+                              print('Searching for: ${_searchController.text}');
+                            },
+                            style: ElevatedButton.styleFrom(
+                              shape: CircleBorder(),
+                              padding: EdgeInsets.all(16),
+                              backgroundColor: mainColor,
+                            ),
+                            child: Icon(Icons.search, color: Colors.white),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 20), // Add some space between search and list
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: 10, // หรือจำนวน UserCard ที่คุณต้องการแสดง
+                        itemBuilder: (context, index) {
+                          return GestureDetector(
+                            onTap: () {
+                              // เมื่อ UserCard ถูกแตะ, นำทางไปยัง SendItemPage
+                              context.go('/send/finduser/senditem');
+                            },
+                            child: const UserCard(
                               imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2UOW09a8y-Ue_FtTFn01C4U4-dZmIax-P_g&s',
                               fullName: 'สมชาย ใจดี',
-                              address:
-                                  '123 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110',
+                              address: '123 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110',
                               phoneNumber: '02-123-4567',
                             ),
-                            const UserCard(
-                              imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2UOW09a8y-Ue_FtTFn01C4U4-dZmIax-P_g&s',
-                              fullName: 'สมชาย ใจดี',
-                              address:
-                                  '123 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110',
-                              phoneNumber: '02-123-4567',
-                            ),
-                            const UserCard(
-                              imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2UOW09a8y-Ue_FtTFn01C4U4-dZmIax-P_g&s',
-                              fullName: 'สมชาย ใจดี',
-                              address:
-                                  '123 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110',
-                              phoneNumber: '02-123-4567',
-                            ),
-                            const UserCard(
-                              imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2UOW09a8y-Ue_FtTFn01C4U4-dZmIax-P_g&s',
-                              fullName: 'สมชาย ใจดี',
-                              address:
-                                  '123 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110',
-                              phoneNumber: '02-123-4567',
-                            ),
-                            const UserCard(
-                              imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2UOW09a8y-Ue_FtTFn01C4U4-dZmIax-P_g&s',
-                              fullName: 'สมชาย ใจดี',
-                              address:
-                                  '123 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110',
-                              phoneNumber: '02-123-4567',
-                            ),
-                            const UserCard(
-                              imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2UOW09a8y-Ue_FtTFn01C4U4-dZmIax-P_g&s',
-                              fullName: 'สมชาย ใจดี',
-                              address:
-                                  '123 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110',
-                              phoneNumber: '02-123-4567',
-                            ),
-                            const UserCard(
-                              imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2UOW09a8y-Ue_FtTFn01C4U4-dZmIax-P_g&s',
-                              fullName: 'สมชาย ใจดี',
-                              address:
-                                  '123 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110',
-                              phoneNumber: '02-123-4567',
-                            ),
-                            const UserCard(
-                              imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2UOW09a8y-Ue_FtTFn01C4U4-dZmIax-P_g&s',
-                              fullName: 'สมชาย ใจดี',
-                              address:
-                                  '123 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110',
-                              phoneNumber: '02-123-4567',
-                            ),
-                            const UserCard(
-                              imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2UOW09a8y-Ue_FtTFn01C4U4-dZmIax-P_g&s',
-                              fullName: 'สมชาย ใจดี',
-                              address:
-                                  '123 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110',
-                              phoneNumber: '02-123-4567',
-                            ),
-                          ],
-                        ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -239,5 +179,11 @@ class _FindUserPageState extends State<FindUserPage> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 }

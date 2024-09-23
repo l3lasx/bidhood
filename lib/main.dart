@@ -4,6 +4,7 @@ import 'package:bidhood/pages/percel.dart';
 import 'package:bidhood/pages/profile.dart';
 import 'package:bidhood/pages/register.dart';
 import 'package:bidhood/pages/send.dart';
+import 'package:bidhood/pages/senditem.dart'; // เพิ่ม import นี้
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -49,6 +50,14 @@ final GoRouter _router = GoRouter(
               builder: (BuildContext context, GoRouterState state) {
                 return const FindUserPage();
               },
+              routes: [
+                GoRoute(
+                  path: 'senditem',
+                  builder: (BuildContext context, GoRouterState state) {
+                    return const SendItemPage();
+                  },
+                ),
+              ],
             ),
           ],
         ),
