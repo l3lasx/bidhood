@@ -43,6 +43,14 @@ final GoRouter _router = GoRouter(
           builder: (BuildContext context, GoRouterState state) {
             return const SendPage();
           },
+          routes: [
+            GoRoute(
+              path: 'finduser',
+              builder: (BuildContext context, GoRouterState state) {
+                return const FindUserPage();
+              },
+            ),
+          ],
         ),
         GoRoute(
           path: '/user',
@@ -56,12 +64,6 @@ final GoRouter _router = GoRouter(
           path: '/profile',
           builder: (BuildContext context, GoRouterState state) {
             return const ProfilePage();
-          },
-        ),
-        GoRoute(
-          path: '/finduser',
-          builder: (BuildContext context, GoRouterState state) {
-            return const FindUserPage();
           },
         ),
       ],
@@ -93,7 +95,7 @@ class ScaffoldWithNavBar extends StatelessWidget {
   static int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.path;
     if (location.startsWith('/percel')) return 0;
-    if (location.startsWith('/send')) return 1;
+    if (location.startsWith('/send') || location.startsWith('/send/finduser')) return 1; // ปรับปรุงตรงนี้
     if (location.startsWith('/user')) return 2;
     if (location.startsWith('/profile')) return 3;
     return 0;
