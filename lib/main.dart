@@ -1,3 +1,4 @@
+import 'package:bidhood/pages/finduser.dart';
 import 'package:bidhood/pages/login.dart';
 import 'package:bidhood/pages/percel.dart';
 import 'package:bidhood/pages/profile.dart';
@@ -55,6 +56,12 @@ final GoRouter _router = GoRouter(
           path: '/profile',
           builder: (BuildContext context, GoRouterState state) {
             return const ProfilePage();
+          },
+        ),
+        GoRoute(
+          path: '/finduser',
+          builder: (BuildContext context, GoRouterState state) {
+            return const FindUserPage();
           },
         ),
       ],
@@ -178,6 +185,9 @@ class MyApp extends StatelessWidget {
       routerConfig: _router,
       title: 'Flutter Demo',
       theme: ThemeData(
+        appBarTheme: const AppBarTheme(
+          iconTheme: IconThemeData(color: Colors.white),
+        ),
         textTheme: GoogleFonts.promptTextTheme(),
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,

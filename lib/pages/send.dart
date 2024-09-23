@@ -144,7 +144,7 @@ class _SendPageState extends State<SendPage> {
                           ),
                           ElevatedButton(
                             onPressed: () {
-                              // ใส่การทำงานของปุ่มที่ 2 ตรงนี้
+                              context.push('/finduser');
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF0A9876),

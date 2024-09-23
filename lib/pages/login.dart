@@ -156,7 +156,7 @@ class _LoginPageState extends State<LoginPage> {
                               const SizedBox(height: 16),
                               ElevatedButton(
                                 onPressed: () {
-                                  context.go('/send');
+                                  context.go('/percel');
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.black,
