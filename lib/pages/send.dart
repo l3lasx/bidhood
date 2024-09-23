@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:bidhood/components/cards/itemcard.dart'; // เพิ่ม import นี้
 
 class SendPage extends StatefulWidget {
   const SendPage({super.key});
@@ -164,7 +165,7 @@ class _SendPageState extends State<SendPage> {
                     ),
                     Expanded(
                       child: itemCount == 0
-                          ? Center(
+                          ? const Center(
                               child: Text(
                                 'คุณยังไม่มีการจัดส่งสินค้า',
                                 style: TextStyle(
@@ -176,35 +177,23 @@ class _SendPageState extends State<SendPage> {
                             )
                           : ListView.builder(
                               itemCount: itemCount,
-                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               itemBuilder: (context, index) {
                                 return Padding(
                                   padding: const EdgeInsets.only(bottom: 8),
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(8),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.grey.withOpacity(0.2),
-                                          spreadRadius: 1,
-                                          blurRadius: 3,
-                                          offset: Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    child: ListTile(
-                                      title: Text(
-                                        'รายการจัดส่งสินค้าที่ ${index + 1}',
-                                        style: TextStyle(fontWeight: FontWeight.bold),
-                                      ),
-                                      subtitle: Text('รายละเอียดการจัดส่ง'),
-                                      leading: Icon(Icons.local_shipping, color: mainColor),
-                                      trailing: Icon(Icons.arrow_forward_ios, color: Colors.grey),
-                                      onTap: () {
-                                        // Handle item tap
-                                      },
-                                    ),
+                                  child: ItemCard(
+                                    orderId: 'ORD${index + 1}',
+                                    sender: 'Sender ${index + 1}',
+                                    receiver: 'Receiver ${index + 1}',
+                                    receiverAddress: 'Address ${index + 1}',
+                                    itemImages: const [
+                                      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2UOW09a8y-Ue_FtTFn01C4U4-dZmIax-P_g&s',
+                                      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2UOW09a8y-Ue_FtTFn01C4U4-dZmIax-P_g&s',
+                                    ],
+                                    deliveryStatus: 'Pending',
+                                    rider: 'Rider ${index + 1}',
+                                    deliveryDate: DateTime.now(),
+                                    completionDate: null,
                                   ),
                                 );
                               },

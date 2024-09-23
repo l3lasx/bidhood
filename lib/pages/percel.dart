@@ -1,3 +1,5 @@
+
+import 'package:bidhood/components/cards/itemcard.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -166,34 +168,19 @@ class _PercelPageState extends State<PercelPage> {
                               itemBuilder: (context, index) {
                                 return Padding(
                                   padding: const EdgeInsets.only(bottom: 8),
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(8),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.grey.withOpacity(0.2),
-                                          spreadRadius: 1,
-                                          blurRadius: 3,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    child: ListTile(
-                                      title: Text(
-                                        'รายการจัดส่งสินค้าที่ ${index + 1}',
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                      subtitle: const Text('รายละเอียดการจัดส่ง'),
-                                      leading: Icon(Icons.local_shipping,
-                                          color: mainColor),
-                                      trailing: const Icon(Icons.arrow_forward_ios,
-                                          color: Colors.grey),
-                                      onTap: () {
-                                        // Handle item tap
-                                      },
-                                    ),
+                                  child: ItemCard(
+                                    orderId: 'ORD${index + 1}',
+                                    sender: 'Sender ${index + 1}',
+                                    receiver: 'Receiver ${index + 1}',
+                                    receiverAddress: 'Address ${index + 1}',
+                                    itemImages: const [
+                                      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2UOW09a8y-Ue_FtTFn01C4U4-dZmIax-P_g&s',
+                                      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2UOW09a8y-Ue_FtTFn01C4U4-dZmIax-P_g&s',
+                                    ],
+                                    deliveryStatus: 'Pending',
+                                    rider: 'Rider ${index + 1}',
+                                    deliveryDate: DateTime.now(),
+                                    completionDate: null,
                                   ),
                                 );
                               },
