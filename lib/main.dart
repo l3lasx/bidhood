@@ -1,5 +1,6 @@
 import 'package:bidhood/pages/login.dart';
 import 'package:bidhood/pages/percel.dart';
+import 'package:bidhood/pages/profile.dart';
 import 'package:bidhood/pages/register.dart';
 import 'package:bidhood/pages/send.dart';
 import 'package:flutter/material.dart';
@@ -46,16 +47,14 @@ final GoRouter _router = GoRouter(
           path: '/user',
           builder: (BuildContext context, GoRouterState state) {
             return Container(
-              child: const Text("percel"),
+              child: const Text("home"),
             );
           },
         ),
         GoRoute(
           path: '/profile',
           builder: (BuildContext context, GoRouterState state) {
-            return Container(
-              child: const Text("percel"),
-            );
+            return const ProfilePage();
           },
         ),
       ],
