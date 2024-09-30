@@ -62,14 +62,6 @@ final GoRouter _router = GoRouter(
           ],
         ),
         GoRoute(
-          path: '/user',
-          builder: (BuildContext context, GoRouterState state) {
-            return Container(
-              child: const Text("home"),
-            );
-          },
-        ),
-        GoRoute(
           path: '/profile',
           builder: (BuildContext context, GoRouterState state) {
             return const ProfilePage();
@@ -104,9 +96,8 @@ class ScaffoldWithNavBar extends StatelessWidget {
   static int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.path;
     if (location.startsWith('/percel')) return 0;
-    if (location.startsWith('/send') || location.startsWith('/send/finduser')) return 1; // ปรับปรุงตรงนี้
-    if (location.startsWith('/user')) return 2;
-    if (location.startsWith('/profile')) return 3;
+    if (location.startsWith('/send') || location.startsWith('/send/finduser')) return 1;
+    if (location.startsWith('/profile')) return 2;
     return 0;
   }
 
@@ -119,9 +110,6 @@ class ScaffoldWithNavBar extends StatelessWidget {
         GoRouter.of(context).go('/send');
         break;
       case 2:
-        GoRouter.of(context).go('/user');
-        break;
-      case 3:
         GoRouter.of(context).go('/profile');
         break;
     }
@@ -147,8 +135,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
         children: [
           _buildNavItem(Icons.local_shipping, 'Percel', 0),
           _buildNavItem(Icons.send, 'Send', 1),
-          _buildNavItem(Icons.home, 'Home', 2),
-          _buildNavItem(Icons.person, 'Profile', 3),
+          _buildNavItem(Icons.person, 'Profile', 2),
         ],
       ),
     );
@@ -194,6 +181,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       routerConfig: _router,
+      debugShowCheckedModeBanner: false,  // เพิ่มบรรทัดนี้
       title: 'Flutter Demo',
       theme: ThemeData(
         appBarTheme: const AppBarTheme(
