@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:geolocator/geolocator.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -23,6 +24,49 @@ class _RegisterPageState extends State<RegisterPage> {
       TextEditingController();
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _licensePlateController = TextEditingController();
+
+  Position? _currentPosition;
+
+  // Add this method to determine the current position
+  Future<void> _determinePosition() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Location services are disabled.')),
+      );
+      return;
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Location permissions are denied')),
+        );
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Location permissions are permanently denied, we cannot request permissions.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    Position position = await Geolocator.getCurrentPosition();
+    setState(() {
+      _currentPosition = position;
+    });
+  }
 
   @override
   void dispose() {
@@ -470,6 +514,31 @@ class _RegisterPageState extends State<RegisterPage> {
                                           return null;
                                         },
                                       ),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton.icon(
+                                      onPressed: _determinePosition,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: mainColor,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 12,
+                                        ),
+                                      ),
+                                      icon: const Icon(Icons.location_on),
+                                      label: const Text(
+                                        'รับตำแหน่งปัจจุบัน',
+                                        style: TextStyle(fontSize: 16),
+                                      ),
+                                    ),
+                                    if (_currentPosition != null)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 8.0),
+                                        child: Text(
+                                          'ตำแหน่งปัจจุบัน: ${_currentPosition!.latitude}, ${_currentPosition!.longitude}',
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+                                      ),
                                   ],
                                 ),
                               ] else if (_currentStep == 2) ...[
@@ -488,6 +557,12 @@ class _RegisterPageState extends State<RegisterPage> {
                                       const SizedBox(height: 8),
                                       Text(
                                           'ป้ายทะเบียน: ${_licensePlateController.text}'),
+                                    ],
+                                    if (_currentPosition != null) ...[
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'ตำแหน่ง: ${_currentPosition!.latitude}, ${_currentPosition!.longitude}',
+                                      ),
                                     ],
                                     const SizedBox(height: 16),
                                     const Text('การสมัครเสร็จสมบูรณ์'),
@@ -535,13 +610,20 @@ class _RegisterPageState extends State<RegisterPage> {
                                                 content: Text(
                                                     'กรุณาเลือกประเภทผู้ใช้')),
                                           );
-                                        } else if (_currentStep == 1 &&
-                                            _formKey.currentState!.validate()) {
-                                          setState(() {
-                                            _currentStep += 1;
-                                          });
                                         } else if (_currentStep == 1) {
-                                          // Form is invalid
+                                          if (_formKey.currentState!.validate()) {
+                                            if (_currentPosition == null) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('กรุณารับตำแหน่งปัจจุบัน'),
+                                                ),
+                                              );
+                                            } else {
+                                              setState(() {
+                                                _currentStep += 1;
+                                              });
+                                            }
+                                          }
                                         } else {
                                           setState(() {
                                             _currentStep += 1;
