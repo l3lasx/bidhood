@@ -643,7 +643,10 @@ class _RegisterPageState extends State<RegisterPage> {
                                                               .latitude,
                                                           long:
                                                               _currentPosition!
-                                                                  .longitude));
+                                                                  .longitude),
+                                                      carPlate:
+                                                          _licensePlateController
+                                                              .text);
                                               var response = await authProvider
                                                   .register(userBody);
                                               if (response['statusCode'] !=
