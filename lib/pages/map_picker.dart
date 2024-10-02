@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'dart:async';
 
 class MapPicker extends StatefulWidget {
   final Position? initialPosition;
@@ -29,17 +30,56 @@ class _MapPickerState extends State<MapPicker> {
   }
 
   Future<void> _getCurrentLocation() async {
+    // ตรวจสอบสิทธิ์
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ไม่ได้รับอนุญาตให้เข้าถึงตำแหน่ง')),
+        );
+        return;
+      }
+    }
+    
+    if (permission == LocationPermission.deniedForever) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ไม่สามารถเข้าถึงตำแหน่งได้ กรุณาอนุญาตในการตั้งค่า')),
+      );
+      return;
+    }
+
+    // ตรวจสอบว่า GPS เปิดอยู่
+    bool isLocationServiceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!isLocationServiceEnabled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('กรุณาเปิดบริการระบุตำแหน่ง')),
+      );
+      return;
+    }
+
+    // ดำเนินการต่อหากได้รับอนุญาตและ GPS เปิดอยู่
     try {
       Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: Duration(seconds: 5),
+      );
       setState(() {
         _selectedPosition = LatLng(position.latitude, position.longitude);
       });
       _mapController.move(_selectedPosition!, 15);
+    } on TimeoutException {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('หมดเวลาในการรับตำแหน่ง กรุณาลองอีกครั้ง')),
+      );
+    } on LocationServiceDisabledException {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('บริการระบุตำแหน่งถูกปิด กรุณาเปิดใช้งาน')),
+      );
     } catch (e) {
       print("Error getting location: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ไม่สามารถระบุตำแหน่งปัจจุบันได้')),
+        const SnackBar(content: Text('เกิดข้อผิดพลาดในการระบุตำแหน่ง')),
       );
     }
   }
