@@ -1,17 +1,17 @@
 import 'package:bidhood/models/user/user_body_for_login.dart';
 import 'package:bidhood/providers/auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
-class LoginPage extends StatefulWidget {
+class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends ConsumerState<LoginPage> {
   final Color mainColor = const Color(0xFF0A9830);
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -32,7 +32,6 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
     return Scaffold(
       body: Stack(
         children: [
@@ -164,7 +163,9 @@ class _LoginPageState extends State<LoginPage> {
                                       phone: _phoneController.text,
                                       password: _passwordController.text);
                                   var response =
-                                      await authProvider.login(userBody);
+                                      await ref.read(authProvider.notifier).login(userBody);
+
+                                   
                                   if (response['statusCode'] != 200) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(

@@ -3,18 +3,18 @@ import 'package:bidhood/providers/auth.dart';
 import 'package:bidhood/pages/map_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:provider/provider.dart';
 
-class RegisterPage extends StatefulWidget {
+class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
 
   @override
-  State<RegisterPage> createState() => _RegisterPageState();
+  ConsumerState<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _RegisterPageState extends State<RegisterPage> {
+class _RegisterPageState extends ConsumerState<RegisterPage> {
   final Color mainColor = const Color(0xFF0A9830);
   int _currentStep = 0;
   String? _selectedUserType;
@@ -70,7 +70,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
     return Scaffold(
       body: Stack(
         children: [
@@ -647,7 +646,8 @@ class _RegisterPageState extends State<RegisterPage> {
                                                       carPlate:
                                                           _licensePlateController
                                                               .text);
-                                              var response = await authProvider
+                                              var response = await ref
+                                                  .read(authProvider.notifier)
                                                   .register(userBody);
                                               if (response['statusCode'] !=
                                                   201) {

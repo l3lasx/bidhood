@@ -4,26 +4,21 @@ import 'package:bidhood/pages/percel.dart';
 import 'package:bidhood/pages/profile.dart';
 import 'package:bidhood/pages/register.dart';
 import 'package:bidhood/pages/send.dart';
-import 'package:bidhood/pages/senditem.dart'; // เพิ่ม import นี้
-import 'package:bidhood/providers/auth.dart';
-import 'package:bidhood/providers/user.dart';
+import 'package:bidhood/pages/senditem.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 void main() {
   runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (context) => AuthProvider()),
-        ChangeNotifierProvider(create: (context) => UserProvider()),
-      ],
-      child: const MyApp(),
-    ),
+    const ProviderScope(
+      child: MyApp(),
+    )
   );
 }
 
-final GoRouter _router = GoRouter(
+final GoRouter router = GoRouter(
   initialLocation: '/login',
   routes: <RouteBase>[
     GoRoute(
@@ -106,7 +101,8 @@ class ScaffoldWithNavBar extends StatelessWidget {
   static int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.path;
     if (location.startsWith('/percel')) return 0;
-    if (location.startsWith('/send') || location.startsWith('/send/finduser')) return 1;
+    if (location.startsWith('/send') || location.startsWith('/send/finduser'))
+      return 1;
     if (location.startsWith('/profile')) return 2;
     return 0;
   }
@@ -190,8 +186,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      routerConfig: _router,
-      debugShowCheckedModeBanner: false,  // เพิ่มบรรทัดนี้
+      routerConfig: router,
+      debugShowCheckedModeBanner: false, // เพิ่มบรรทัดนี้
       title: 'Flutter Demo',
       theme: ThemeData(
         appBarTheme: const AppBarTheme(
