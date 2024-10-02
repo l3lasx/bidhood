@@ -1,5 +1,9 @@
+import 'package:bidhood/models/user/user_body_for_login.dart';
+import 'package:bidhood/providers/auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -28,6 +32,7 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
     return Scaffold(
       body: Stack(
         children: [
@@ -154,8 +159,28 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                               const SizedBox(height: 16),
                               ElevatedButton(
-                                onPressed: () {
-                                  context.go('/percel');
+                                onPressed: () async {
+                                  UserBodyForLogin userBody = UserBodyForLogin(
+                                      phone: _phoneController.text,
+                                      password: _passwordController.text);
+                                  var response =
+                                      await authProvider.login(userBody);
+                                  if (response['statusCode'] != 200) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                            "เข้าสู่ระบบไม่สำเร็จ ( Status ${response['statusCode']} ) "),
+                                      ),
+                                    );
+                                    return;
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('เข้าสู่ระบบสำเร็จแล้ว'),
+                                      ),
+                                    );
+                                    context.go('/percel');
+                                  }
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.black,

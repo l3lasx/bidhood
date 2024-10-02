@@ -626,6 +626,18 @@ class _RegisterPageState extends State<RegisterPage> {
                                                 ),
                                               );
                                             } else {
+                                              if (_confirmPasswordController
+                                                      .text !=
+                                                  _passwordController.text) {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text(
+                                                        'รหัสผ่านของคุณไม่เหมือนกัน'),
+                                                  ),
+                                                );
+                                              }
+
                                               UserBodyForCreate userBody =
                                                   UserBodyForCreate(
                                                       phone:
@@ -654,7 +666,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                                     .showSnackBar(
                                                   SnackBar(
                                                     content: Text(
-                                                      "สมัครสมาชิกไม่สำเร็จ ( Status ${response['statusCode']} ) "),
+                                                        "สมัครสมาชิกไม่สำเร็จ ( Status ${response['statusCode']} ) "),
                                                   ),
                                                 );
                                                 return;
