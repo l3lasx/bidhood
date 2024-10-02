@@ -1,8 +1,11 @@
+import 'package:bidhood/models/user/user_body_for_create.dart';
+import 'package:bidhood/providers/auth.dart';
 import 'package:bidhood/pages/map_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:provider/provider.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -67,6 +70,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
     return Scaffold(
       body: Stack(
         children: [
@@ -263,14 +267,14 @@ class _RegisterPageState extends State<RegisterPage> {
                                     GestureDetector(
                                       onTap: () {
                                         setState(() {
-                                          _selectedUserType = 'rider';
+                                          _selectedUserType = 'Rider';
                                         });
                                       },
                                       child: Column(
                                         children: [
                                           Icon(
                                             Icons.motorcycle,
-                                            color: _selectedUserType == 'rider'
+                                            color: _selectedUserType == 'Rider'
                                                 ? Colors.green
                                                 : Colors.grey,
                                             size: 40,
@@ -283,17 +287,16 @@ class _RegisterPageState extends State<RegisterPage> {
                                     GestureDetector(
                                       onTap: () {
                                         setState(() {
-                                          _selectedUserType = 'customer';
+                                          _selectedUserType = 'User';
                                         });
                                       },
                                       child: Column(
                                         children: [
                                           Icon(
                                             Icons.person,
-                                            color:
-                                                _selectedUserType == 'customer'
-                                                    ? Colors.green
-                                                    : Colors.grey,
+                                            color: _selectedUserType == 'User'
+                                                ? Colors.green
+                                                : Colors.grey,
                                             size: 40,
                                           ),
                                           const SizedBox(height: 8),
@@ -481,7 +484,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                       },
                                     ),
                                     const SizedBox(height: 16),
-                                    if (_selectedUserType == 'rider')
+                                    if (_selectedUserType == 'Rider')
                                       TextFormField(
                                         controller: _licensePlateController,
                                         decoration: const InputDecoration(
@@ -519,7 +522,8 @@ class _RegisterPageState extends State<RegisterPage> {
                                     ),
                                     if (_currentPosition != null)
                                       Padding(
-                                        padding: const EdgeInsets.only(top: 8.0),
+                                        padding:
+                                            const EdgeInsets.only(top: 8.0),
                                         child: Text(
                                           'ตำแหน่งปัจจุบัน: ${_currentPosition!.latitude}, ${_currentPosition!.longitude}',
                                           style: const TextStyle(fontSize: 14),
@@ -539,7 +543,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                         'ชื่อ-นามสกุล: ${_fullNameController.text}'),
                                     const SizedBox(height: 8),
                                     Text('ที่อยู่: ${_addressController.text}'),
-                                    if (_selectedUserType == 'rider') ...[
+                                    if (_selectedUserType == 'Rider') ...[
                                       const SizedBox(height: 8),
                                       Text(
                                           'ป้ายทะเบียน: ${_licensePlateController.text}'),
@@ -587,7 +591,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                      onPressed: () {
+                                      onPressed: () async {
                                         if (_currentStep == 0 &&
                                             _selectedUserType == null) {
                                           ScaffoldMessenger.of(context)
@@ -597,14 +601,69 @@ class _RegisterPageState extends State<RegisterPage> {
                                                     'กรุณาเลือกประเภทผู้ใช้')),
                                           );
                                         } else if (_currentStep == 1) {
-                                          if (_formKey.currentState!.validate()) {
+                                          if (_formKey.currentState!
+                                              .validate()) {
                                             if (_currentPosition == null) {
-                                              ScaffoldMessenger.of(context).showSnackBar(
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
                                                 const SnackBar(
-                                                  content: Text('กรุณารับตำแหน่งปัจจุบัน'),
+                                                  content: Text(
+                                                      'กรุณารับตำแหน่งปัจจุบัน'),
                                                 ),
                                               );
                                             } else {
+                                              if (_confirmPasswordController
+                                                      .text !=
+                                                  _passwordController.text) {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text(
+                                                        'รหัสผ่านของคุณไม่เหมือนกัน'),
+                                                  ),
+                                                );
+                                              }
+
+                                              UserBodyForCreate userBody =
+                                                  UserBodyForCreate(
+                                                      phone:
+                                                          _phoneController.text,
+                                                      password:
+                                                          _passwordController
+                                                              .text,
+                                                      fullname:
+                                                          _fullNameController
+                                                              .text,
+                                                      role: _selectedUserType,
+                                                      address:
+                                                          _addressController
+                                                              .text,
+                                                      location: Location(
+                                                          lat: _currentPosition!
+                                                              .latitude,
+                                                          long:
+                                                              _currentPosition!
+                                                                  .longitude));
+                                              var response = await authProvider
+                                                  .register(userBody);
+                                              if (response['statusCode'] !=
+                                                  201) {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                        "สมัครสมาชิกไม่สำเร็จ ( Status ${response['statusCode']} ) "),
+                                                  ),
+                                                );
+                                                return;
+                                              }
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                      'ยินดีด้วยสมัครสมาชิกเรียบร้อย'),
+                                                ),
+                                              );
                                               setState(() {
                                                 _currentStep += 1;
                                               });
@@ -616,9 +675,12 @@ class _RegisterPageState extends State<RegisterPage> {
                                           });
                                         }
                                       },
-                                      child: const Text(
-                                        'ถัดไป',
-                                        style: TextStyle(color: Colors.white),
+                                      child: Text(
+                                        _currentStep == 1
+                                            ? 'สมัครสมาชิก'
+                                            : 'ถัดไป',
+                                        style: const TextStyle(
+                                            color: Colors.white),
                                       ),
                                     ),
                                   ],

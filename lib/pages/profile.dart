@@ -281,7 +281,8 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                             const SizedBox(height: 16),
                             SizedBox(
-                              width: double.infinity, // ทำให้ปุ่มยืดเต็มความกว้าง
+                              width:
+                                  double.infinity, // ทำให้ปุ่มยืดเต็มความกว้าง
                               child: ElevatedButton.icon(
                                 onPressed: () {
                                   // ใส่การทำงานของปุ่มที่ 2 ตรงนี้
@@ -301,10 +302,12 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                             const SizedBox(height: 80),
                             SizedBox(
-                              width: double.infinity, // ทำให้ปุ่มยืดเต็มความกว้าง
+                              width:
+                                  double.infinity, // ทำให้ปุ่มยืดเต็มความกว้าง
                               child: ElevatedButton.icon(
                                 onPressed: () {
                                   // ใส่การทำงานของปุ่มที่ 2 ตรงนี้
+                                  context.go('/login');
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.red,
@@ -325,16 +328,22 @@ class _ProfilePageState extends State<ProfilePage> {
                               child: ElevatedButton.icon(
                                 onPressed: () async {
                                   try {
-                                    Position position = await _determinePosition();
-                                    print('Current location: ${position.latitude}, ${position.longitude}');
+                                    Position position =
+                                        await _determinePosition();
+                                    print(
+                                        'Current location: ${position.latitude}, ${position.longitude}');
                                     // You can add more logic here, like updating the address field
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Location: ${position.latitude}, ${position.longitude}')),
+                                      SnackBar(
+                                          content: Text(
+                                              'Location: ${position.latitude}, ${position.longitude}')),
                                     );
                                   } catch (e) {
                                     print('Error getting location: $e');
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Error getting location: $e')),
+                                      SnackBar(
+                                          content: Text(
+                                              'Error getting location: $e')),
                                     );
                                   }
                                 },
