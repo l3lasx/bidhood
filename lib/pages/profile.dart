@@ -1,16 +1,19 @@
+import 'package:bidhood/providers/auth.dart';
+import 'package:bidhood/services/auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 
-class ProfilePage extends StatefulWidget {
+class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
 
   @override
-  State<ProfilePage> createState() => _ProfilePageState();
+  ConsumerState<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _ProfilePageState extends ConsumerState<ProfilePage> {
   final Color mainColor = const Color(0xFF0A9830);
   final String userName = "John Doe"; // สมมติชื่อผู้ใช้
 
@@ -40,6 +43,24 @@ class _ProfilePageState extends State<ProfilePage> {
           'Location permissions are permanently denied, we cannot request permissions.');
     }
     return await Geolocator.getCurrentPosition();
+  }
+
+  Future<void> _fetchUserData() async {
+    var response = await ref.read(userService).me();
+    if (response['statusCode'] == 200) {
+      // update current profile
+      await ref
+          .read(authProvider.notifier)
+          .updateUser(response['data']['data']);
+    } else {
+      debugPrint("เกิดปัญหาดึงข้อมูลผู้ใช้ล่าสุดไม่ได้");
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
   }
 
   @override
