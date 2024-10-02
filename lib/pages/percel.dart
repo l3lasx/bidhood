@@ -1,7 +1,8 @@
-
 import 'package:bidhood/components/cards/itemcard.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:bidhood/components/bottomsheet/item_details_bottomsheet.dart';
+import 'package:latlong2/latlong.dart';
 
 class PercelPage extends StatefulWidget {
   const PercelPage({super.key});
@@ -181,6 +182,30 @@ class _PercelPageState extends State<PercelPage> {
                                     rider: 'Rider ${index + 1}',
                                     deliveryDate: DateTime.now(),
                                     completionDate: null,
+                                    onTap: () {
+                                      showBottomSheet(
+                                        context: context,
+                                        backgroundColor: Colors.transparent,
+                                        builder: (BuildContext context) {
+                                          return ItemDetailsDrawer(
+                                            orderId: 'ORD${index + 1}',
+                                            sender: 'Sender ${index + 1}',
+                                            receiver: 'Receiver ${index + 1}',
+                                            receiverAddress: 'Address ${index + 1}',
+                                            itemImages: const [
+                                              'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2UOW09a8y-Ue_FtTFn01C4U4-dZmIax-P_g&s',
+                                              'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2UOW09a8y-Ue_FtTFn01C4U4-dZmIax-P_g&s',
+                                            ],
+                                            deliveryStatus: 'Pending',
+                                            rider: 'Rider ${index + 1}',
+                                            deliveryDate: DateTime.now(),
+                                            completionDate: null,
+                                            senderLocation: LatLng(13.7563, 100.5018), // Example coordinates for Bangkok
+                                            receiverLocation: LatLng(13.7563, 100.5100), // Example coordinates
+                                          );
+                                        },
+                                      );
+                                    },
                                   ),
                                 );
                               },

@@ -1,5 +1,6 @@
 import 'package:bidhood/models/user/user_body_for_create.dart';
 import 'package:bidhood/providers/auth.dart';
+import 'package:bidhood/pages/map_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -30,45 +31,30 @@ class _RegisterPageState extends State<RegisterPage> {
 
   Position? _currentPosition;
 
-  // Add this method to determine the current position
-  Future<void> _determinePosition() async {
-    bool serviceEnabled;
-    LocationPermission permission;
+  void _openMap() async {
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => MapPicker(initialPosition: _currentPosition),
+      ),
+    );
 
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Location services are disabled.')),
-      );
-      return;
-    }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Location permissions are denied')),
+    if (result != null) {
+      setState(() {
+        _currentPosition = Position(
+          latitude: result['position'].latitude,
+          longitude: result['position'].longitude,
+          timestamp: DateTime.now(),
+          accuracy: 0,
+          altitudeAccuracy: 0,
+          headingAccuracy: 0,
+          altitude: 0,
+          heading: 0,
+          speed: 0,
+          speedAccuracy: 0,
         );
-        return;
-      }
+        _addressController.text = result['address'];
+      });
     }
-
-    if (permission == LocationPermission.deniedForever) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Location permissions are permanently denied, we cannot request permissions.',
-          ),
-        ),
-      );
-      return;
-    }
-
-    Position position = await Geolocator.getCurrentPosition();
-    setState(() {
-      _currentPosition = position;
-    });
   }
 
   @override
@@ -519,7 +505,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                       ),
                                     const SizedBox(height: 16),
                                     ElevatedButton.icon(
-                                      onPressed: _determinePosition,
+                                      onPressed: _openMap,
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: mainColor,
                                         foregroundColor: Colors.white,
@@ -530,7 +516,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                       ),
                                       icon: const Icon(Icons.location_on),
                                       label: const Text(
-                                        'รับตำแหน่งปัจจุบัน',
+                                        'เลือกตำแหน่งปัจจุบัน',
                                         style: TextStyle(fontSize: 16),
                                       ),
                                     ),
