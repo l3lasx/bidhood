@@ -4,6 +4,7 @@ import 'package:bidhood/components/cards/usercard.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:bidhood/components/bottomsheet/add_item_bottomsheet.dart';
 
 class SendItemPage extends StatefulWidget {
   const SendItemPage({super.key});
@@ -37,129 +38,16 @@ class _SendItemPageState extends State<SendItemPage> {
       context: context,
       isScrollControlled: true,
       builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setState) {
-            return Container(
-              color: Colors.white,
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-              ),
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Center(
-                        child: const Text(
-                          'สินค้าของคุณ',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          ElevatedButton.icon(
-                            onPressed: () => _pickImage(ImageSource.gallery),
-                            icon: const Icon(Icons.photo_library,
-                                color: Colors.white),
-                            label: const Text('เลือกรูป',
-                                style: TextStyle(color: Colors.white)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: mainColor,
-                            ),
-                          ),
-                          ElevatedButton.icon(
-                            onPressed: () => _pickImage(ImageSource.camera),
-                            icon: const Icon(Icons.camera_alt,
-                                color: Colors.white),
-                            label: const Text('ถ่ายรูป',
-                                style: TextStyle(color: Colors.white)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: mainColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      if (_image != null)
-                        Center(
-                          child: Image.file(
-                            File(_image!.path),
-                            height: 200,
-                          ),
-                        ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _detailsController,
-                        decoration: const InputDecoration(
-                          labelText: 'รายละเอียด',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _quantityController,
-                        decoration: const InputDecoration(
-                          labelText: 'จำนวน',
-                          border: OutlineInputBorder(),
-                        ),
-                        keyboardType: TextInputType.number,
-                      ),
-                      const SizedBox(height: 16),
-                      Center(
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            if (_image == null ||
-                                _detailsController.text.isEmpty ||
-                                _quantityController.text.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text(
-                                      'กรุณากรอกข้อมูลให้ครบทุกช่อง'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            } else {
-                              final newItem = {
-                                'image': _image,
-                                'details': _detailsController.text,
-                                'quantity': int.parse(_quantityController.text),
-                              };
-                              setState(() {
-                                _items.add(newItem);
-                                itemCount++;
-                                _image = null;
-                                _detailsController.clear();
-                                _quantityController.text = '1';
-                              });
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text('เพิ่มรายการสำเร็จ'),
-                                  backgroundColor: Colors.green,
-                                ),
-                              );
-                              // Update the parent widget's state
-                              this.setState(() {});
-                            }
-                          },
-                          icon: const Icon(Icons.add, color: Colors.white),
-                          label: const Text('เพิ่ม',
-                              style: TextStyle(color: Colors.white)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: mainColor,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+        return AddItemBottomSheet(
+          onItemAdded: (newItem) {
+            setState(() {
+              _items.add(newItem);
+              itemCount++;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('เพิ่มรายการสำเร็จ'),
+                backgroundColor: Colors.green,
               ),
             );
           },
