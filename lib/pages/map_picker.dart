@@ -1,0 +1,149 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:geolocator/geolocator.dart';
+
+class MapPicker extends StatefulWidget {
+  final Position? initialPosition;
+
+  const MapPicker({Key? key, this.initialPosition}) : super(key: key);
+
+  @override
+  State<MapPicker> createState() => _MapPickerState();
+}
+
+class _MapPickerState extends State<MapPicker> {
+  final MapController _mapController = MapController();
+  LatLng? _selectedPosition;
+  final TextEditingController _addressController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialPosition != null) {
+      _selectedPosition = LatLng(
+        widget.initialPosition!.latitude,
+        widget.initialPosition!.longitude,
+      );
+    }
+  }
+
+  Future<void> _getCurrentLocation() async {
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+      setState(() {
+        _selectedPosition = LatLng(position.latitude, position.longitude);
+      });
+      _mapController.move(_selectedPosition!, 15);
+    } catch (e) {
+      print("Error getting location: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ไม่สามารถระบุตำแหน่งปัจจุบันได้')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text('เลือกตำแหน่งของคุณ', style: TextStyle(color: Colors.black)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.check, color: Colors.black),
+            onPressed: () {
+              if (_selectedPosition != null) {
+                Navigator.of(context).pop({
+                  'position': _selectedPosition,
+                  'address': _addressController.text,
+                });
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('กรุณาเลือกตำแหน่งบนแผนที่')),
+                );
+              }
+            },
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                center: _selectedPosition ?? LatLng(13.7563, 100.5018),
+                zoom: 13.0,
+                onTap: (tapPosition, point) {
+                  setState(() {
+                    _selectedPosition = point;
+                  });
+                },
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  subdomains: ['a', 'b', 'c'],
+                ),
+                MarkerLayer(
+                  markers: _selectedPosition == null
+                      ? []
+                      : [
+                          Marker(
+                            width: 80.0,
+                            height: 80.0,
+                            point: _selectedPosition!,
+                            builder: (ctx) => const Icon(
+                              Icons.location_on,
+                              color: Colors.red,
+                              size: 40.0,
+                            ),
+                          ),
+                        ],
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: Colors.white,
+            child: Column(
+              children: [
+                TextField(
+                  controller: _addressController,
+                  decoration: const InputDecoration(
+                    labelText: 'รายละเอียดที่อยู่',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: _getCurrentLocation,
+                  icon: const Icon(Icons.my_location),
+                  label: const Text('ระบุพิกัดปัจจุบัน'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0A9830),
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _addressController.dispose();
+    super.dispose();
+  }
+}
