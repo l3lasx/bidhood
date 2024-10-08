@@ -164,13 +164,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                       password: _passwordController.text);
                                   var response =
                                       await ref.read(authProvider.notifier).login(userBody);
-
-                                   
                                   if (response['statusCode'] != 200) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(
-                                            "เข้าสู่ระบบไม่สำเร็จ ( Status ${response['statusCode']} ) "),
+                                            "เข้าสู่ระบบไม่สำเร็จ ( Status ${response['statusCode']} ) ${response['data']['message']} "),
                                       ),
                                     );
                                     return;
