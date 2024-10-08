@@ -651,11 +651,12 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                                   .register(userBody);
                                               if (response['statusCode'] !=
                                                   201) {
+                                                    debugPrint('${response['data']}');
                                                 ScaffoldMessenger.of(context)
                                                     .showSnackBar(
                                                   SnackBar(
                                                     content: Text(
-                                                        "สมัครสมาชิกไม่สำเร็จ ( Status ${response['statusCode']} ) "),
+                                                        "สมัครสมาชิกไม่สำเร็จ ( Status ${response['statusCode']} ) ${response['data']['message']} "),
                                                   ),
                                                 );
                                                 return;
