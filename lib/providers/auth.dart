@@ -1,8 +1,13 @@
+import 'dart:convert';
+
 import 'package:bidhood/environments/app_config.dart';
+import 'package:bidhood/main.dart';
 import 'package:bidhood/models/user/user_body_for_create.dart';
 import 'package:bidhood/models/user/user_body_for_login.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 final Dio _dio = Dio();
 
@@ -36,7 +41,39 @@ class AuthState {
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier() : super(AuthState());
+  AuthNotifier() : super(AuthState()) {
+    _loadAuthState();
+  }
+
+  // Load the authentication state from local storage
+  Future<void> _loadAuthState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+    final accessToken = prefs.getString('accessToken');
+    final refreshToken = prefs.getString('refreshToken');
+    state = state.copyWith(
+      isLoggedIn: isLoggedIn,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+    );
+    if (isLoggedIn) {
+      router.go('/parcel');
+    } else {
+      router.go('/login');
+    }
+  }
+
+  Future<void> checkValidUser(isLoggedIn, userData) async {
+    if (isLoggedIn) {
+      if (userData!['role'] == "User") {
+        router.go('/parcel');
+      } else if (userData['role'] == "Rider") {
+        router.go('/profile');
+      }
+    } else {
+      router.go('/login');
+    }
+  }
 
   Future<Map<String, dynamic>> login(UserBodyForLogin userBody) async {
     try {
@@ -48,11 +85,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
       var result = response.data['data'];
       var userData = response.data['data']['user'];
+      await _updateLoginState(
+          true, result['access_token'], result['refresh_token']);
       state = state.copyWith(
           isLoggedIn: true,
           accessToken: result['access_token'],
           refreshToken: result['refresh_token'],
           userData: userData);
+      if (userData!['role'] == "User") {
+        router.go('/parcel');
+      } else if (userData['role'] == "Rider") {
+        router.go('/profile');
+      }
       return {
         "statusCode": response.statusCode,
         "data": response.data,
@@ -70,18 +114,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
         "error": "An unexpected error occurred",
       };
     }
-  }
-
-  void logout() {
-    state = state.copyWith(
-        isLoggedIn: false,
-        accessToken: null,
-        refreshToken: null,
-        userData: null);
-  }
-
-  Future<void> updateUser(dynamic userData) async {
-    state = state.copyWith(userData: userData);
   }
 
   Future<Map<String, dynamic>> register(UserBodyForCreate userBody) async {
@@ -109,5 +141,35 @@ class AuthNotifier extends StateNotifier<AuthState> {
         "error": "An unexpected error occurred",
       };
     }
+  }
+
+  Future<void> updateUser(dynamic userData) async {
+    state = state.copyWith(userData: userData);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+        'userData', userData.toString()); // Serialize if necessary
+  }
+
+  Future<void> _updateLoginState(
+      bool isLoggedIn, String? accessToken, String? refreshToken) async {
+    state = state.copyWith(
+      isLoggedIn: isLoggedIn,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+    );
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isLoggedIn', isLoggedIn);
+    await prefs.setString('accessToken', accessToken ?? '');
+    await prefs.setString('refreshToken', refreshToken ?? '');
+  }
+
+  void logout() async {
+    debugPrint("ออกจากระบบแล้ว");
+    await _updateLoginState(false, '', '');
+    state = state.copyWith(
+        isLoggedIn: false,
+        accessToken: null,
+        refreshToken: null,
+        userData: null);
   }
 }
