@@ -18,11 +18,21 @@ class ProfilePage extends ConsumerStatefulWidget {
 
 class _ProfilePageState extends ConsumerState<ProfilePage> {
   final Color mainColor = const Color(0xFF0A9830);
-  final String userName = "John Doe"; // สมมติชื่อผู้ใช้
-
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
+  late Future<Map<String, dynamic>> userProfile;
+
+  @override
+  void initState() {
+    super.initState();
+    userProfile = _fetchUserData();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
 
   Future<Position> _determinePosition() async {
     bool serviceEnabled;
@@ -52,93 +62,168 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     return await ref.read(userService).me();
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchUserData();
-  }
-
   Future<void> chooseImage() async {
     try {
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(source: ImageSource.gallery);
       if (image != null) {
-        var upload = ref.watch(uploadService).uploadImage(image);
-        debugPrint('$upload');
+        var upload = await ref.watch(uploadService).uploadImage(image);
+        if (upload['statusCode'] == 200) {
+          var res = upload['data'];
+          Map<String, dynamic> payload = {
+            "avatar_picture": res['url'],
+          };
+          var updateAvatar = await ref.watch(userService).update(payload);
+          if (updateAvatar['statusCode'] == 200) {
+            debugPrint("Upload Avatar Success!");
+            setState(() {
+              userProfile = _fetchUserData();
+            });
+          }
+        }
       }
     } catch (e) {
       debugPrint("$e");
     }
   }
-  
+
+  Future<void> takeAPhoto() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.camera);
+    if (image != null) {
+      var upload = await ref.watch(uploadService).uploadImage(image);
+      if (upload['statusCode'] == 200) {
+        var res = upload['data'];
+        Map<String, dynamic> payload = {
+          "avatar_picture": res['url'],
+        };
+        var updateAvatar = await ref.watch(userService).update(payload);
+        if (updateAvatar['statusCode'] == 200) {
+          debugPrint("Upload Avatar Success!");
+          setState(() {
+            userProfile = _fetchUserData();
+          });
+        }
+      }
+    }
+  }
 
   Future<void> saveProfile() async {
-
+    Map<String, dynamic> payload = {
+      "phone": _phoneController.text,
+      "fullname": _fullNameController.text,
+      "address": _addressController.text
+    };
+    var updateProfile = await ref.watch(userService).update(payload);
+    if (updateProfile['statusCode'] == 200) {
+      debugPrint("Upload Profile Success!");
+      setState(() {
+        userProfile = _fetchUserData();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${updateProfile['data']['message']}')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-          backgroundColor: mainColor,
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Row(
-                children: [
-                  Icon(
-                    Icons.shopping_basket,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    'BidHood',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              GestureDetector(
-                onTap: () {
-                  context.go('/profile'); // สมมติว่ามีหน้าโปรไฟล์
-                },
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      userName,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
+    return FutureBuilder<Map<String, dynamic>>(
+        future: userProfile,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (snapshot.hasData) {
+            final userData = snapshot.data?['data']?['data'];
+            if (userData == null) {
+              return const Center(child: Text('No user data available'));
+            }
+            _phoneController.text = userData['phone'];
+            _fullNameController.text = userData['fullname'];
+            _addressController.text = userData['address'];
+            return Scaffold(
+                appBar: AppBar(
+                  backgroundColor: mainColor,
+                  title: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(
+                            Icons.shopping_basket,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'BidHood',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    const CircleAvatar(
-                      radius: 16,
-                      backgroundImage: NetworkImage(
-                          'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2UOW09a8y-Ue_FtTFn01C4U4-dZmIax-P_g&s'),
-                      backgroundColor: Colors.white,
-                    ),
-                  ],
+                      GestureDetector(
+                        onTap: () {
+                          context.go('/profile'); // สมมติว่ามีหน้าโปรไฟล์
+                        },
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              '${userData['fullname']}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.5),
+                                    spreadRadius: 2,
+                                    blurRadius: 5,
+                                    offset: const Offset(
+                                        0, 3), // changes position of shadow
+                                  ),
+                                ],
+                              ),
+                              child: CachedNetworkImage(
+                                imageUrl: '${userData['avatar_picture']}',
+                                imageBuilder: (context, imageProvider) =>
+                                    CircleAvatar(
+                                  radius: 16,
+                                  backgroundImage: imageProvider,
+                                  backgroundColor: Colors.white,
+                                ),
+                                placeholder: (context, url) =>
+                                    const CircleAvatar(
+                                  radius: 16,
+                                  backgroundColor: Colors.white,
+                                  child: CircularProgressIndicator(),
+                                ),
+                                errorWidget: (context, url, error) =>
+                                    const CircleAvatar(
+                                  radius: 16,
+                                  backgroundColor: Colors.white,
+                                  child: Icon(Icons.error),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ),
-        body: FutureBuilder<Map<String, dynamic>>(
-            future: _fetchUserData(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              } else if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}'));
-              } else if (snapshot.hasData) {
-                final userData = snapshot.data!['data']!['data'];
-                return Stack(
+                body: Stack(
                   children: [
                     Container(
                       decoration: const BoxDecoration(
@@ -160,19 +245,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         ),
                       ),
                     ),
-                    const Padding(
-                      padding: EdgeInsets.only(left: 16, right: 16, top: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 16, right: 16, top: 8),
                       child: Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.location_on, // ไอคอน address
                             color: Colors.white,
                             size: 20,
                           ),
-                          SizedBox(width: 2),
+                          const SizedBox(width: 2),
                           Text(
-                            'Mahasarakham University',
-                            style: TextStyle(
+                            "${userData['address']}",
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 16,
                             ),
@@ -204,26 +289,33 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                           shape: BoxShape.circle,
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Colors.grey.withOpacity(0.5),
+                                              color:
+                                                  Colors.grey.withOpacity(0.5),
                                               spreadRadius: 2,
                                               blurRadius: 5,
-                                              offset: const Offset(0, 3), // changes position of shadow
+                                              offset: const Offset(0,
+                                                  3), // changes position of shadow
                                             ),
                                           ],
                                         ),
                                         child: CachedNetworkImage(
-                                          imageUrl: "${userData['avatar_picture']}",
-                                          imageBuilder: (context, imageProvider) => CircleAvatar(
+                                          imageUrl:
+                                              '${userData['avatar_picture']}',
+                                          imageBuilder:
+                                              (context, imageProvider) =>
+                                                  CircleAvatar(
                                             radius: 56,
                                             backgroundImage: imageProvider,
                                             backgroundColor: Colors.white,
                                           ),
-                                          placeholder: (context, url) => const CircleAvatar(
+                                          placeholder: (context, url) =>
+                                              const CircleAvatar(
                                             radius: 56,
                                             backgroundColor: Colors.white,
                                             child: CircularProgressIndicator(),
                                           ),
-                                          errorWidget: (context, url, error) => const CircleAvatar(
+                                          errorWidget: (context, url, error) =>
+                                              const CircleAvatar(
                                             radius: 56,
                                             backgroundColor: Colors.white,
                                             child: Icon(Icons.error),
@@ -243,7 +335,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                               },
                                               style: ElevatedButton.styleFrom(
                                                 backgroundColor:
-                                                    Color(0xFF0A9830),
+                                                    const Color(0xFF0A9830),
                                                 foregroundColor: Colors.white,
                                                 padding:
                                                     const EdgeInsets.symmetric(
@@ -262,11 +354,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                           Expanded(
                                             child: ElevatedButton.icon(
                                               onPressed: () {
-                                                // ใส่การทำงานของปุ่มที่ 2 ตรงนี้
+                                                takeAPhoto();
                                               },
                                               style: ElevatedButton.styleFrom(
                                                 backgroundColor:
-                                                    Color(0xFF0A9830),
+                                                    const Color(0xFF0A9830),
                                                 foregroundColor: Colors.white,
                                                 padding:
                                                     const EdgeInsets.symmetric(
@@ -286,6 +378,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                       const SizedBox(height: 8),
                                       TextFormField(
                                         controller: _phoneController,
+                                        readOnly: true,
                                         decoration: InputDecoration(
                                           labelText: 'เบอร์โทร',
                                           border: const OutlineInputBorder(),
@@ -376,6 +469,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                         child: ElevatedButton.icon(
                                           onPressed: () {
                                             // ใส่การทำงานของปุ่มที่ 2 ตรงนี้
+                                            saveProfile();
                                           },
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: Colors.black,
@@ -423,7 +517,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                             try {
                                               Position position =
                                                   await _determinePosition();
-                                              print(
+                                              debugPrint(
                                                   'Current location: ${position.latitude}, ${position.longitude}');
                                               // You can add more logic here, like updating the address field
                                               ScaffoldMessenger.of(context)
@@ -433,7 +527,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                                         'Location: ${position.latitude}, ${position.longitude}')),
                                               );
                                             } catch (e) {
-                                              print(
+                                              debugPrint(
                                                   'Error getting location: $e');
                                               ScaffoldMessenger.of(context)
                                                   .showSnackBar(
@@ -444,8 +538,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                             }
                                           },
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: mainColor,
-                                            foregroundColor: Colors.white,
+                                            backgroundColor: Colors.white,
+                                            foregroundColor: Colors.black,
                                             padding: const EdgeInsets.symmetric(
                                                 horizontal: 16, vertical: 12),
                                           ),
@@ -466,10 +560,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       ),
                     ),
                   ],
-                );
-              } else {
-                return Center(child: Text('No data available'));
-              }
-            }));
+                ));
+          } else {
+            return const Center(child: Text('No data available'));
+          }
+        });
   }
 }

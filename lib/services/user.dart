@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:bidhood/environments/app_config.dart';
 import 'package:bidhood/providers/dio.dart';
 import 'package:dio/dio.dart';
@@ -39,10 +37,11 @@ class UserService {
 
   Future<Map<String, dynamic>> update(Map<String, dynamic> data) async {
     try {
-      final api = config['endpoint'] + '/user/me';
+      final api = config['endpoint'] + '/auth/me';
+      debugPrint(api);
       var response = await dio.put(
         api,
-        data: jsonEncode(data),
+        data: data,
         options: Options(headers: {'Content-Type': 'application/json'}),
       );
       return {

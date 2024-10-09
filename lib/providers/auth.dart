@@ -60,6 +60,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
     try {
       await _fetchUserDetails(accessToken);
+      await refresh();
     } catch (e) {
       _handleAuthError(e);
     }
