@@ -17,8 +17,10 @@ class DioInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     final authState = ref.read(authProvider);
+    final authService = ref.watch(authProvider.notifier);
     final token = authState.accessToken;
     if (token != null) {
+      authService.refresh();
       options.headers['Authorization'] = 'Bearer $token';
       options.headers['Refresh-Token'] = '${authState.refreshToken}';
       // debugPrint('${options.headers}');
