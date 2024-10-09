@@ -105,6 +105,32 @@ class AuthNotifier extends StateNotifier<AuthState> {
     router.go('/login');
   }
 
+  Future<void> refresh() async {
+    try {
+      final api = config['endpoint'] + '/auth/refresh';
+      var response = await _dio.post(
+        api,
+        options: Options(headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${state.accessToken}',
+          'Refresh-Token': '${state.refreshToken}'
+        }),
+      );
+      var result = response.data;
+      await _updateLoginState(
+          true, result['access_token'], result['refresh_token']);
+      state = state.copyWith(
+          isLoggedIn: true,
+          accessToken: result['access_token'],
+          refreshToken: result['refresh_token']);
+      debugPrint("Refresh Token.....");
+    } catch (e) {
+      if (e is DioException) {
+        debugPrint('$e');
+      }
+    }
+  }
+
   Future<Map<String, dynamic>> login(UserBodyForLogin userBody) async {
     try {
       final api = config['endpoint'] + '/auth/login';
