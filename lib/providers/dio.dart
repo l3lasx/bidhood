@@ -1,15 +1,13 @@
 import 'package:bidhood/providers/auth.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
+// import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:bidhood/main.dart';
 
-
 final goRouterProvider = Provider<GoRouter>((ref) {
   return router;
 });
-
 
 class DioInterceptor extends Interceptor {
   final Ref ref;
@@ -23,9 +21,8 @@ class DioInterceptor extends Interceptor {
     if (token != null) {
       options.headers['Authorization'] = 'Bearer $token';
       options.headers['Refresh-Token'] = '${authState.refreshToken}';
-      debugPrint('${options.headers}');
+      // debugPrint('${options.headers}');
     }
-
     super.onRequest(options, handler);
   }
 

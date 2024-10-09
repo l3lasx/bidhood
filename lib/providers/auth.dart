@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:bidhood/environments/app_config.dart';
 import 'package:bidhood/main.dart';
 import 'package:bidhood/models/user/user_body_for_create.dart';
@@ -56,23 +54,55 @@ class AuthNotifier extends StateNotifier<AuthState> {
       accessToken: accessToken,
       refreshToken: refreshToken,
     );
-    if (isLoggedIn) {
-      router.go('/parcel');
-    } else {
-      router.go('/login');
+    if (!isLoggedIn || accessToken == null) {
+      _navigateToLogin();
+      return;
+    }
+    try {
+      await _fetchUserDetails(accessToken);
+    } catch (e) {
+      _handleAuthError(e);
     }
   }
 
-  Future<void> checkValidUser(isLoggedIn, userData) async {
-    if (isLoggedIn) {
-      if (userData!['role'] == "User") {
-        router.go('/parcel');
-      } else if (userData['role'] == "Rider") {
-        router.go('/profile');
-      }
+  void _handleAuthError(e) {
+    if (e is DioException && e.response?.statusCode != 200) {
+      debugPrint("Authentication error: ${e.message}");
     } else {
-      router.go('/login');
+      debugPrint("Unexpected error: $e");
     }
+    _navigateToLogin();
+  }
+
+  Future<void> _fetchUserDetails(String accessToken) async {
+    final api = config['endpoint'] + '/auth/me';
+    final response = await _dio.post(
+      api,
+      options: Options(headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $accessToken',
+      }),
+    );
+    var res = response.data['data'];
+    if (res['role'] == null) {
+      _navigateToLogin();
+      return;
+    }
+    _navigateBasedOnRole(res['role']);
+  }
+
+  void _navigateBasedOnRole(String role) {
+    if (role == 'User') {
+      router.go('/parcel');
+    } else if (role == 'Rider') {
+      router.go('/profile');
+    } else {
+      _navigateToLogin();
+    }
+  }
+
+  void _navigateToLogin() {
+    router.go('/login');
   }
 
   Future<Map<String, dynamic>> login(UserBodyForLogin userBody) async {
@@ -92,11 +122,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           accessToken: result['access_token'],
           refreshToken: result['refresh_token'],
           userData: userData);
-      if (userData!['role'] == "User") {
-        router.go('/parcel');
-      } else if (userData['role'] == "Rider") {
-        router.go('/profile');
-      }
+      await _fetchUserDetails(result['access_token']);
       return {
         "statusCode": response.statusCode,
         "data": response.data,

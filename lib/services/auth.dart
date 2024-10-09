@@ -1,6 +1,7 @@
 import 'package:bidhood/environments/app_config.dart';
 import 'package:bidhood/providers/dio.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class AuthorizeService {
@@ -19,6 +20,7 @@ class AuthorizeService {
         "data": response.data,
       };
     } catch (e) {
+      debugPrint("$e");
       if (e is DioException) {
         return {
           "statusCode": e.response?.statusCode,
@@ -32,10 +34,11 @@ class AuthorizeService {
       };
     }
   }
+
   Future<Map<String, dynamic>> refreshToken() async {
     try {
       final api = config['endpoint'] + '/auth/register';
-            var response = await dio.post(
+      var response = await dio.post(
         api,
         options: Options(headers: {'Content-Type': 'application/json'}),
       );
