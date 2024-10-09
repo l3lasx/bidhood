@@ -162,8 +162,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                   UserBodyForLogin userBody = UserBodyForLogin(
                                       phone: _phoneController.text,
                                       password: _passwordController.text);
-                                  var response =
-                                      await ref.read(authProvider.notifier).login(userBody);
+                                  var response = await ref
+                                      .read(authProvider.notifier)
+                                      .login(userBody);
                                   if (response['statusCode'] != 200) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
@@ -178,7 +179,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                         content: Text('เข้าสู่ระบบสำเร็จแล้ว'),
                                       ),
                                     );
-                                    context.go('/percel');
                                   }
                                 },
                                 style: ElevatedButton.styleFrom(

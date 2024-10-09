@@ -1,26 +1,32 @@
 import 'package:bidhood/pages/finduser.dart';
 import 'package:bidhood/pages/login.dart';
-import 'package:bidhood/pages/percel.dart';
+import 'package:bidhood/pages/onboarding.dart';
+import 'package:bidhood/pages/parcel.dart';
 import 'package:bidhood/pages/profile.dart';
 import 'package:bidhood/pages/register.dart';
 import 'package:bidhood/pages/send.dart';
 import 'package:bidhood/pages/senditem.dart';
+import 'package:bidhood/providers/auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() {
-  runApp(
-    const ProviderScope(
-      child: MyApp(),
-    )
-  );
+  runApp(const ProviderScope(
+    child: MyApp(),
+  ));
 }
 
 final GoRouter router = GoRouter(
-  initialLocation: '/login',
+  initialLocation: '/onboarding',
   routes: <RouteBase>[
+    GoRoute(
+      path: '/',
+      builder: (BuildContext context, GoRouterState state) {
+        return const LoginPage();
+      },
+    ),
     GoRoute(
       path: '/login',
       builder: (BuildContext context, GoRouterState state) {
@@ -33,15 +39,20 @@ final GoRouter router = GoRouter(
         return const RegisterPage();
       },
     ),
+    GoRoute(
+        path: '/onboarding',
+        builder: (BuildContext context, GoRouterState state) {
+          return const OnboardingPage();
+        }),
     ShellRoute(
       builder: (BuildContext context, GoRouterState state, Widget child) {
         return ScaffoldWithNavBar(child: child);
       },
       routes: <RouteBase>[
         GoRoute(
-          path: '/percel',
+          path: '/parcel',
           builder: (BuildContext context, GoRouterState state) {
-            return const PercelPage();
+            return const ParcelPage();
           },
         ),
         GoRoute(
@@ -100,7 +111,7 @@ class ScaffoldWithNavBar extends StatelessWidget {
 
   static int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.path;
-    if (location.startsWith('/percel')) return 0;
+    if (location.startsWith('/parcel')) return 0;
     if (location.startsWith('/send') || location.startsWith('/send/finduser'))
       return 1;
     if (location.startsWith('/profile')) return 2;
@@ -110,7 +121,7 @@ class ScaffoldWithNavBar extends StatelessWidget {
   void _onItemTapped(int index, BuildContext context) {
     switch (index) {
       case 0:
-        GoRouter.of(context).go('/percel');
+        GoRouter.of(context).go('/parcel');
         break;
       case 1:
         GoRouter.of(context).go('/send');
@@ -180,21 +191,40 @@ class CustomBottomNavigationBar extends StatelessWidget {
   }
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerStatefulWidget {
+  // Change to StatefulWidget
   const MyApp({super.key});
 
   @override
+  ConsumerState<MyApp> createState() => _MyAppState(); // Create state
+}
+
+class _MyAppState extends ConsumerState<MyApp> {
+  // New state class
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    ref.watch(authProvider);
     return MaterialApp.router(
       routerConfig: router,
       debugShowCheckedModeBanner: false, // เพิ่มบรรทัดนี้
-      title: 'Flutter Demo',
       theme: ThemeData(
         appBarTheme: const AppBarTheme(
           iconTheme: IconThemeData(color: Colors.white),
         ),
         textTheme: GoogleFonts.promptTextTheme(),
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color.fromARGB(255, 87, 183, 58)),
         useMaterial3: true,
       ),
     );

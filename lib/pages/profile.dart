@@ -329,6 +329,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                 onPressed: () {
                                   // ใส่การทำงานของปุ่มที่ 2 ตรงนี้
                                   context.go('/login');
+                                  ref.watch(authProvider.notifier).logout();
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.red,

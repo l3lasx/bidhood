@@ -4,14 +4,14 @@ import 'package:go_router/go_router.dart';
 import 'package:bidhood/components/bottomsheet/item_details_bottomsheet.dart';
 import 'package:latlong2/latlong.dart';
 
-class PercelPage extends StatefulWidget {
-  const PercelPage({super.key});
+class ParcelPage extends StatefulWidget {
+  const ParcelPage({super.key});
 
   @override
-  State<PercelPage> createState() => _PercelPageState();
+  State<ParcelPage> createState() => _ParcelPageState();
 }
 
-class _PercelPageState extends State<PercelPage> {
+class _ParcelPageState extends State<ParcelPage> {
   final Color mainColor = const Color(0xFF0A9830);
   final String userName = "John Doe"; // สมมติชื่อผู้ใช้
   int itemCount = 0; // Initial number of items set to 0
