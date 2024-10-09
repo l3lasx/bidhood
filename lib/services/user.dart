@@ -4,10 +4,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class AuthorizeService {
+class UserService {
   final Dio dio;
 
-  AuthorizeService(this.dio);
+  UserService(this.dio);
   Future<Map<String, dynamic>> me() async {
     try {
       final api = config['endpoint'] + '/auth/me';
@@ -35,11 +35,13 @@ class AuthorizeService {
     }
   }
 
-  Future<Map<String, dynamic>> refreshToken() async {
+  Future<Map<String, dynamic>> update(Map<String, dynamic> data) async {
     try {
-      final api = config['endpoint'] + '/auth/register';
-      var response = await dio.post(
+      final api = config['endpoint'] + '/auth/me';
+      debugPrint(api);
+      var response = await dio.put(
         api,
+        data: data,
         options: Options(headers: {'Content-Type': 'application/json'}),
       );
       return {
@@ -47,6 +49,7 @@ class AuthorizeService {
         "data": response.data,
       };
     } catch (e) {
+      debugPrint("$e");
       if (e is DioException) {
         return {
           "statusCode": e.response?.statusCode,
@@ -64,5 +67,5 @@ class AuthorizeService {
 
 final userService = Provider((ref) {
   final dio = ref.watch(dioProvider);
-  return AuthorizeService(dio);
+  return UserService(dio);
 });

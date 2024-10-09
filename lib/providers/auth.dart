@@ -60,6 +60,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
     try {
       await _fetchUserDetails(accessToken);
+      await refresh();
     } catch (e) {
       _handleAuthError(e);
     }
@@ -126,7 +127,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       debugPrint("Refresh Token.....");
     } catch (e) {
       if (e is DioException) {
-        debugPrint('$e');
+        // debugPrint('${e.response}');
       }
     }
   }
@@ -193,13 +194,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
         "error": "An unexpected error occurred",
       };
     }
-  }
-
-  Future<void> updateUser(dynamic userData) async {
-    state = state.copyWith(userData: userData);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-        'userData', userData.toString()); // Serialize if necessary
   }
 
   Future<void> _updateLoginState(
