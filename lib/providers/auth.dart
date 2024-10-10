@@ -71,7 +71,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           'Refresh-Token': '$refreshToken'
         }),
       );
-      debugPrint('hi ${response.data['access_token']}');
+      debugPrint('TokenDebug ${response.data['access_token']}');
       state = state.copyWith(
           isLoggedIn: true,
           accessToken: response.data['access_token'],
