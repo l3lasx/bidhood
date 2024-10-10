@@ -19,28 +19,35 @@ class AuthState {
   final String? accessToken;
   final String? refreshToken;
   final dynamic userData;
-
+  final bool isLoading;
   AuthState(
       {this.isLoggedIn = false,
       this.accessToken,
       this.refreshToken,
+      this.isLoading = false,
       this.userData});
 
   AuthState copyWith(
       {bool? isLoggedIn,
       String? accessToken,
       String? refreshToken,
+      bool? isLoading,
       dynamic userData}) {
     return AuthState(
         isLoggedIn: isLoggedIn ?? this.isLoggedIn,
         accessToken: accessToken ?? this.accessToken,
         refreshToken: refreshToken ?? this.refreshToken,
+        isLoading: isLoading ?? this.isLoading,
         userData: userData ?? this.userData);
   }
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
   AuthNotifier() : super(AuthState());
+
+  AuthState getState() {
+    return state;
+  }
 
   // Load the authentication state from local storage
   Future<void> loadAuthState(ref) async {
@@ -90,6 +97,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> _fetchUserDetails(ref, String accessToken) async {
+    state = state.copyWith(isLoading: true);
     try {
       final api = config['endpoint'] + '/auth/me';
       final response = await _dio.post(
@@ -100,12 +108,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
         }),
       );
       var res = response.data['data'];
+      state = state.copyWith(userData: res, isLoading: false);
       if (res['role'] == null) {
         _navigateToLogin();
         return;
       }
       return _navigateBasedOnRole(ref, res['role']);
     } catch (err) {
+      state = state.copyWith(isLoading: false);
       _navigateToLogin();
     }
   }
@@ -196,6 +206,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await prefs.setString('accessToken', accessToken ?? '');
     await prefs.setString('refreshToken', refreshToken ?? '');
     debugPrint('Save Key');
+  }
+
+  Future<void> updateUser(dynamic user) async {
+    state = state.copyWith(userData: user, isLoading: false);
   }
 
   void logout() async {
