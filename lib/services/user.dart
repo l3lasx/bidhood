@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 class UserService {
   final Dio dio;
 
-  UserService(this.dio);
+  UserService(this.dio ,ref);
   Future<Map<String, dynamic>> me() async {
     try {
       final api = config['endpoint'] + '/auth/me';
@@ -67,5 +67,5 @@ class UserService {
 
 final userService = Provider((ref) {
   final dio = ref.watch(dioProvider);
-  return UserService(dio);
+  return UserService(dio , ref);
 });
