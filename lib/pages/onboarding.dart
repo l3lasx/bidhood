@@ -15,11 +15,6 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   }
 
   @override
-  void dispose() {
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(body: _buildOnboardingContent());
   }

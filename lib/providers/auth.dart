@@ -2,6 +2,7 @@ import 'package:bidhood/environments/app_config.dart';
 import 'package:bidhood/main.dart';
 import 'package:bidhood/models/user/user_body_for_create.dart';
 import 'package:bidhood/models/user/user_body_for_login.dart';
+import 'package:bidhood/providers/dio.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -39,100 +40,92 @@ class AuthState {
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier() : super(AuthState()) {
-    _loadAuthState();
-  }
+  AuthNotifier() : super(AuthState());
 
   // Load the authentication state from local storage
-  Future<void> _loadAuthState() async {
+  Future<void> loadAuthState(ref) async {
     final prefs = await SharedPreferences.getInstance();
-    final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+    final bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
     final accessToken = prefs.getString('accessToken');
     final refreshToken = prefs.getString('refreshToken');
-    state = state.copyWith(
-      isLoggedIn: isLoggedIn,
-      accessToken: accessToken,
-      refreshToken: refreshToken,
-    );
-    if (!isLoggedIn || accessToken == null) {
-      _navigateToLogin();
+
+    // debugPrint('$isLoggedIn $accessToken $refreshToken ');
+    if (!isLoggedIn) {
+      ref.watch(goRouterProvider).go('/login');
+      debugPrint("Account not Logged In !");
       return;
     }
-    try {
-      await _fetchUserDetails(accessToken);
-      await refresh();
-    } catch (e) {
-      _handleAuthError(e);
-    }
-  }
-
-  void _handleAuthError(e) {
-    if (e is DioException && e.response?.statusCode != 200) {
-      debugPrint("Authentication error: ${e.message}");
-    } else {
-      debugPrint("Unexpected error: $e");
-    }
-    _navigateToLogin();
-  }
-
-  Future<void> _fetchUserDetails(String accessToken) async {
-    final api = config['endpoint'] + '/auth/me';
-    final response = await _dio.post(
-      api,
-      options: Options(headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $accessToken',
-      }),
-    );
-    var res = response.data['data'];
-    if (res['role'] == null) {
-      _navigateToLogin();
-      return;
-    }
-    _navigateBasedOnRole(res['role']);
-  }
-
-  void _navigateBasedOnRole(String role) {
-    if (role == 'User') {
-      router.go('/parcel');
-    } else if (role == 'Rider') {
-      router.go('/profile');
-    } else {
-      _navigateToLogin();
-    }
-  }
-
-  void _navigateToLogin() {
-    router.go('/login');
-  }
-
-  Future<void> refresh() async {
+    // save token to local
+    await _updateLoginState(
+        true, accessToken.toString(), refreshToken.toString());
+    // debugPrint('accessToken: $accessToken');
+    // debugPrint('refrshToken: $refreshToken');
+    // refresh token section
     try {
       final api = config['endpoint'] + '/auth/refresh';
       var response = await _dio.post(
         api,
         options: Options(headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${state.accessToken}',
-          'Refresh-Token': '${state.refreshToken}'
+          'Authorization': 'Bearer ${accessToken.toString()}',
+          'Refresh-Token': '$refreshToken'
         }),
       );
-      var result = response.data;
-      await _updateLoginState(
-          true, result['access_token'], result['refresh_token']);
+      debugPrint('hi ${response.data['access_token']}');
       state = state.copyWith(
           isLoggedIn: true,
-          accessToken: result['access_token'],
-          refreshToken: result['refresh_token']);
+          accessToken: response.data['access_token'],
+          refreshToken: response.data['refresh_token']);
+      await _updateLoginState(
+          true, response.data['access_token'], response.data['refresh_token']);
+      await _fetchUserDetails(ref, response.data['access_token']);
       debugPrint("Refresh Token.....");
     } catch (e) {
       if (e is DioException) {
-        // debugPrint('${e.response}');
+        if (e.response?.statusCode != 200) {
+          _navigateToLogin();
+        }
       }
     }
   }
 
-  Future<Map<String, dynamic>> login(UserBodyForLogin userBody) async {
+  Future<void> _fetchUserDetails(ref, String accessToken) async {
+    try {
+      final api = config['endpoint'] + '/auth/me';
+      final response = await _dio.post(
+        api,
+        options: Options(headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        }),
+      );
+      var res = response.data['data'];
+      if (res['role'] == null) {
+        _navigateToLogin();
+        return;
+      }
+      return _navigateBasedOnRole(ref, res['role']);
+    } catch (err) {
+      _navigateToLogin();
+    }
+  }
+
+  void _navigateBasedOnRole(WidgetRef ref, String role) {
+    if (role == 'User') {
+      ref.watch(goRouterProvider).go('/parcel');
+    } else if (role == 'Rider') {
+      ref.watch(goRouterProvider).go('/profile');
+    } else {
+      ref.watch(goRouterProvider).go('/login');
+    }
+    debugPrint('UserDebug Role: $role');
+  }
+
+  void _navigateToLogin() {
+    router.go('/login');
+  }
+
+  Future<Map<String, dynamic>> login(ref, UserBodyForLogin userBody) async {
     try {
       final api = config['endpoint'] + '/auth/login';
       var response = await _dio.post(
@@ -149,7 +142,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           accessToken: result['access_token'],
           refreshToken: result['refresh_token'],
           userData: userData);
-      await _fetchUserDetails(result['access_token']);
+      await _fetchUserDetails(ref, result['access_token']);
       return {
         "statusCode": response.statusCode,
         "data": response.data,
@@ -198,24 +191,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> _updateLoginState(
       bool isLoggedIn, String? accessToken, String? refreshToken) async {
-    state = state.copyWith(
-      isLoggedIn: isLoggedIn,
-      accessToken: accessToken,
-      refreshToken: refreshToken,
-    );
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isLoggedIn', isLoggedIn);
     await prefs.setString('accessToken', accessToken ?? '');
     await prefs.setString('refreshToken', refreshToken ?? '');
+    debugPrint('Save Key');
   }
 
   void logout() async {
     debugPrint("ออกจากระบบแล้ว");
-    await _updateLoginState(false, '', '');
-    state = state.copyWith(
-        isLoggedIn: false,
-        accessToken: null,
-        refreshToken: null,
-        userData: null);
+    final prefs = await SharedPreferences.getInstance();
+    prefs.clear();
+    state = AuthState();
+    router.go('/login');
   }
 }

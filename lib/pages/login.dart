@@ -17,7 +17,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
   bool _obscureText = true;
   bool _showVisibilityIcon = false;
-
+  ScaffoldMessengerState? _scaffoldMessenger;
   @override
   void initState() {
     super.initState();
@@ -28,6 +28,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     setState(() {
       _showVisibilityIcon = _passwordController.text.isNotEmpty;
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _scaffoldMessenger = ScaffoldMessenger.of(context);
   }
 
   @override
@@ -164,7 +170,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                       password: _passwordController.text);
                                   var response = await ref
                                       .read(authProvider.notifier)
-                                      .login(userBody);
+                                      .login(ref, userBody);
                                   if (response['statusCode'] != 200) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
@@ -173,12 +179,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                       ),
                                     );
                                     return;
-                                  } else {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('เข้าสู่ระบบสำเร็จแล้ว'),
-                                      ),
-                                    );
                                   }
                                 },
                                 style: ElevatedButton.styleFrom(
@@ -197,9 +197,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   TextButton(
-                                    onPressed: () {
-                                      // TODO: Implement forgot password logic
-                                    },
+                                    onPressed: () {},
                                     child: const Text(
                                       'ลืมรหัสผ่าน ?',
                                       style: TextStyle(
@@ -253,6 +251,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   void dispose() {
     _phoneController.dispose();
     _passwordController.dispose();
+    _scaffoldMessenger?.hideCurrentSnackBar();
     super.dispose();
   }
 }

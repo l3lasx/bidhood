@@ -1,3 +1,5 @@
+// ignore_for_file: unused_local_variable
+
 import 'package:bidhood/pages/finduser.dart';
 import 'package:bidhood/pages/login.dart';
 import 'package:bidhood/pages/onboarding.dart';
@@ -20,6 +22,9 @@ void main() {
 
 final GoRouter router = GoRouter(
   initialLocation: '/onboarding',
+  errorBuilder: (BuildContext context, GoRouterState state) {
+    return const LoginPage();
+  },
   routes: <RouteBase>[
     GoRoute(
       path: '/',
@@ -89,7 +94,7 @@ final GoRouter router = GoRouter(
 );
 
 class ScaffoldWithNavBar extends StatelessWidget {
-  const ScaffoldWithNavBar({Key? key, required this.child}) : super(key: key);
+  const ScaffoldWithNavBar({super.key, required this.child});
   final Widget child;
   final Color mainColor = const Color(0xFF0A9830);
 
@@ -138,14 +143,14 @@ class CustomBottomNavigationBar extends StatelessWidget {
   final Function(int) onTap;
 
   const CustomBottomNavigationBar({
-    Key? key,
+    super.key,
     required this.currentIndex,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       height: 52,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -164,7 +169,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
       child: GestureDetector(
         onTap: () => onTap(index),
         behavior: HitTestBehavior.opaque,
-        child: Container(
+        child: SizedBox(
           height: double.infinity,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -205,16 +210,19 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(authProvider.notifier).loadAuthState(ref);
+    });
   }
 
   @override
   void dispose() {
     super.dispose();
+    router.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    ref.watch(authProvider);
     return MaterialApp.router(
       routerConfig: router,
       debugShowCheckedModeBanner: false, // เพิ่มบรรทัดนี้
