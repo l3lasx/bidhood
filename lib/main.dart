@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bidhood/pages/homerider.dart';
 
 void main() {
   runApp(const ProviderScope(
@@ -106,7 +107,7 @@ final GoRouter router = GoRouter(
         GoRoute(
           path: '/homerider',
           builder: (BuildContext context, GoRouterState state) {
-            return const Scaffold(body: Text("homerider"));
+            return const HomeRiderPage();
           },
         ),
         GoRoute(
