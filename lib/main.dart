@@ -8,6 +8,7 @@ import 'package:bidhood/pages/profile.dart';
 import 'package:bidhood/pages/register.dart';
 import 'package:bidhood/pages/send.dart';
 import 'package:bidhood/pages/senditem.dart';
+import 'package:bidhood/pages/tasklist.dart';
 import 'package:bidhood/providers/auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -99,7 +100,7 @@ final GoRouter router = GoRouter(
         GoRoute(
           path: '/tasklist',
           builder: (BuildContext context, GoRouterState state) {
-            return const Scaffold(body: Text("tasklist"));
+            return const TaskListPage();
           },
         ),
         GoRoute(
