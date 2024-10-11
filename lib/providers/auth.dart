@@ -212,6 +212,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(userData: user, isLoading: false);
   }
 
+  Future<void> update() async {
+    state = state.copyWith();
+  }
+
   void logout() async {
     debugPrint("ออกจากระบบแล้ว");
     final prefs = await SharedPreferences.getInstance();

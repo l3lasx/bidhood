@@ -75,7 +75,7 @@ final GoRouter router = GoRouter(
                 GoRoute(
                   path: 'senditem',
                   builder: (BuildContext context, GoRouterState state) {
-                    return const SendItemPage();
+                    return SendItemPage(user: state.extra as Map<String, dynamic>);
                   },
                 ),
               ],

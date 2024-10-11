@@ -1,148 +1,219 @@
 import 'package:bidhood/components/layouts/user.dart';
+import 'package:bidhood/services/order.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:bidhood/components/cards/itemcard.dart'; // เพิ่ม import นี้
 import 'package:bidhood/components/bottomsheet/item_details_bottomsheet.dart';
 import 'package:latlong2/latlong.dart';
 
-class SendPage extends StatefulWidget {
+class SendPage extends ConsumerStatefulWidget {
   const SendPage({super.key});
 
   @override
-  State<SendPage> createState() => _SendPageState();
+  ConsumerState<SendPage> createState() => _SendPageState();
 }
 
-class _SendPageState extends State<SendPage> {
-  int itemCount = 0; // Initial number of items set to 0
+class _SendPageState extends ConsumerState<SendPage> {
+  int totals = 0; // Initial number of items set to 0
+  late Future<Map<String, dynamic>> orderList;
 
-  void incrementItemCount() {
+  Future<Map<String, dynamic>> _fetchOrderData() async {
+    var result = await ref.read(orderService).getMeSender();
+    final orders = result['data']?['data'];
     setState(() {
-      itemCount++;
+      totals = orders.length ?? 0;
     });
+    return result;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final goRouterState = GoRouterState.of(context);
+    if (goRouterState.uri.queryParameters['refresh'] == 'true') {
+      setState(() {
+        orderList = _fetchOrderData();
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    orderList = _fetchOrderData();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return UserLayout(
+      key: UniqueKey(),
       bodyWidget: Positioned(
-        top: 50,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        child: SafeArea(
-          child: SizedBox(
-            width: double.infinity,
-            height: MediaQuery.of(context).size.height * 0.7,
-            child: Column(
-              children: [
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      ElevatedButton(
-                        onPressed: () {
-                          // ใส่การทำงานของปุ่มที่ 1 ตรงนี้
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                        ),
-                        child: Text(
-                          'รายการจัดส่งทั้งหมด ($itemCount)',
-                          style: const TextStyle(color: Colors.white, fontSize: 14),
-                        ),
-                      ),
-                      ElevatedButton(
-                        onPressed: () {
-                          context
-                              .push('/send/finduser'); // ใช้เส้นทางที่ถูกต้อง
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0A9876),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.add, color: Colors.white),
-                            SizedBox(width: 2),
-                            Text('สร้างรายการ',
-                                style: TextStyle(
-                                    color: Colors.white, fontSize: 14)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: itemCount == 0
-                      ? const Center(
+          top: 50,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: SafeArea(
+            child: SizedBox(
+              width: double.infinity,
+              height: MediaQuery.of(context).size.height * 0.7,
+              child: Column(
+                children: [
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            // ใส่การทำงานของปุ่มที่ 1 ตรงนี้
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black,
+                          ),
                           child: Text(
+                            'รายการจัดส่งทั้งหมด ($totals)',
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 14),
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            context
+                                .push('/send/finduser'); // ใช้เส้นทางที่ถูกต้อง
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0A9876),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.add, color: Colors.white),
+                              SizedBox(width: 2),
+                              Text('สร้างรายการ',
+                                  style: TextStyle(
+                                      color: Colors.white, fontSize: 14)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  FutureBuilder<Map<String, dynamic>>(
+                      future: orderList,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                              child: CircularProgressIndicator());
+                        } else if (snapshot.hasData) {
+                          final orderListData = snapshot.data?['data']?['data'];
+                          if (orderListData == null ||
+                              orderListData.length == 0) {
+                            return const Expanded(
+                                child: Center(
+                                    child: Text(
+                              'คุณยังไม่มีการจัดส่งสินค้า',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey,
+                              ),
+                            )));
+                          }
+                          return Expanded(
+                            child: ListView.builder(
+                              itemCount: orderListData.length,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                              itemBuilder: (context, index) {
+                                var order = orderListData[index];
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: ItemCard(
+                                    onTap: () {
+                                      showBottomSheet(
+                                        context: context,
+                                        backgroundColor: Colors.transparent,
+                                        builder: (BuildContext context) {
+                                          return ItemDetailsDrawer(
+                                            orderId: order['order_id'] ?? '',
+                                            sender:
+                                                order['user']['fullname'] ?? '',
+                                            receiver: order['receiver']
+                                                    ['fullname'] ??
+                                                '',
+                                            receiverAddress: order['receiver']
+                                                    ['address'] ??
+                                                '',
+                                            itemImages: order['product_list']
+                                                    .map<String>((item) =>
+                                                        item['image'] as String)
+                                                    .toList() ??
+                                                [],
+                                            deliveryStatus: 'Pending',
+                                            rider: order['rider_id'] ??
+                                                'ยังไม่มีไรเดอรับงาน',
+                                            deliveryDate: DateTime.now(),
+                                            completionDate: null,
+                                            senderLocation: LatLng(
+                                                order['user']['location']
+                                                    ['lat'],
+                                                order['user']['location']
+                                                    ['long']),
+                                            receiverLocation: LatLng(
+                                                order['receiver']['location']
+                                                    ['lat'],
+                                                order['receiver']['location'][
+                                                    'long']), // Example coordinates
+                                          );
+                                        },
+                                      );
+                                    },
+                                    orderId: order['order_id'] ?? '',
+                                    sender: order['user']['fullname'] ?? '',
+                                    receiver:
+                                        order['receiver']['fullname'] ?? '',
+                                    receiverAddress:
+                                        order['receiver']['address'] ?? '',
+                                    itemImages: order['product_list']
+                                            .map<String>((item) =>
+                                                item['image'] as String)
+                                            .toList() ??
+                                        [],
+                                    deliveryStatus: 'Pending',
+                                    rider: order['rider_id'] ??
+                                        'ยังไม่มีไรเดอรับงาน',
+                                    deliveryDate: DateTime.now(),
+                                    completionDate: null,
+                                  ),
+                                );
+                              },
+                            ),
+                          );
+                        } else {
+                          return const Expanded(
+                              child: Center(
+                                  child: Text(
                             'คุณยังไม่มีการจัดส่งสินค้า',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Colors.grey,
                             ),
-                          ),
-                        )
-                      : ListView.builder(
-                          itemCount: itemCount,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          itemBuilder: (context, index) {
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: ItemCard(
-                                onTap: () {
-                                  showBottomSheet(
-                                    context: context,
-                                    backgroundColor: Colors.transparent,
-                                    builder: (BuildContext context) {
-                                      return ItemDetailsDrawer(
-                                        orderId: 'ORD${index + 1}',
-                                        sender: 'Sender ${index + 1}',
-                                        receiver: 'Receiver ${index + 1}',
-                                        receiverAddress: 'Address ${index + 1}',
-                                        itemImages: const [
-                                          'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2UOW09a8y-Ue_FtTFn01C4U4-dZmIax-P_g&s',
-                                          'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2UOW09a8y-Ue_FtTFn01C4U4-dZmIax-P_g&s',
-                                        ],
-                                        deliveryStatus: 'Pending',
-                                        rider: 'Rider ${index + 1}',
-                                        deliveryDate: DateTime.now(),
-                                        completionDate: null,
-                                        senderLocation: const LatLng(13.7563,
-                                            100.5018), // Example coordinates for Bangkok
-                                        receiverLocation: const LatLng(13.7669,
-                                            100.5414), // Example coordinates
-                                      );
-                                    },
-                                  );
-                                },
-                                orderId: 'ORD${index + 1}',
-                                sender: 'Sender ${index + 1}',
-                                receiver: 'Receiver ${index + 1}',
-                                receiverAddress: 'Address ${index + 1}',
-                                itemImages: const [
-                                  'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2UOW09a8y-Ue_FtTFn01C4U4-dZmIax-P_g&s',
-                                  'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2UOW09a8y-Ue_FtTFn01C4U4-dZmIax-P_g&s',
-                                ],
-                                deliveryStatus: 'Pending',
-                                rider: 'Rider ${index + 1}',
-                                deliveryDate: DateTime.now(),
-                                completionDate: null,
-                              ),
-                            );
-                          },
-                        ),
-                ),
-              ],
+                          )));
+                        }
+                      }),
+                ],
+              ),
             ),
-          ),
-        ),
-      ),
+          )),
     );
   }
 }

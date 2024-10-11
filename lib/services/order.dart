@@ -4,14 +4,42 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class UserService {
+class OrderService {
   final Dio dio;
 
-  UserService(this.dio, ref);
-
-  Future<Map<String, dynamic>> users() async {
+  OrderService(this.dio, ref);
+  
+  Future<Map<String, dynamic>> create(Map<String, dynamic> data) async {
     try {
-      final api = config['endpoint'] + '/users';
+      final api = config['endpoint'] + '/orders';
+      var response = await dio.post(
+        api,
+        data: data,
+        options: Options(headers: {'Content-Type': 'application/json'}),
+      );
+      return {
+        "statusCode": response.statusCode,
+        "data": response.data,
+      };
+    } catch (e) {
+      debugPrint("$e");
+      if (e is DioException) {
+        return {
+          "statusCode": e.response?.statusCode,
+          "data": e.response?.data,
+          "error": e.message,
+        };
+      }
+      return {
+        "statusCode": 500,
+        "error": "An unexpected error occurred",
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> getMeSender() async {
+    try {
+      final api = config['endpoint'] + '/orders/me/sender';
       var response = await dio.get(
         api,
         options: Options(headers: {'Content-Type': 'application/json'}),
@@ -36,10 +64,10 @@ class UserService {
     }
   }
 
-  Future<Map<String, dynamic>> me() async {
+  Future<Map<String, dynamic>> getMeReceiver() async {
     try {
-      final api = config['endpoint'] + '/auth/me';
-      var response = await dio.post(
+      final api = config['endpoint'] + '/orders/me/receiver';
+      var response = await dio.get(
         api,
         options: Options(headers: {'Content-Type': 'application/json'}),
       );
@@ -63,13 +91,11 @@ class UserService {
     }
   }
 
-  Future<Map<String, dynamic>> update(Map<String, dynamic> data) async {
+    Future<Map<String, dynamic>> getMeRider() async {
     try {
-      final api = config['endpoint'] + '/auth/me';
-      debugPrint(api);
-      var response = await dio.put(
+      final api = config['endpoint'] + '/orders/me/rider';
+      var response = await dio.get(
         api,
-        data: data,
         options: Options(headers: {'Content-Type': 'application/json'}),
       );
       return {
@@ -93,7 +119,7 @@ class UserService {
   }
 }
 
-final userService = Provider((ref) {
+final orderService = Provider((ref) {
   final dio = ref.watch(dioProvider);
-  return UserService(dio, ref);
+  return OrderService(dio, ref);
 });
