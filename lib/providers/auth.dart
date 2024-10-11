@@ -124,7 +124,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     if (role == 'User') {
       ref.watch(goRouterProvider).go('/parcel');
     } else if (role == 'Rider') {
-      ref.watch(goRouterProvider).go('/profile');
+      ref.watch(goRouterProvider).go('/tasklist');
     } else {
       ref.watch(goRouterProvider).go('/login');
     }

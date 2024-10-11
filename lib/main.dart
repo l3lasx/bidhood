@@ -75,7 +75,8 @@ final GoRouter router = GoRouter(
                 GoRoute(
                   path: 'senditem',
                   builder: (BuildContext context, GoRouterState state) {
-                    return SendItemPage(user: state.extra as Map<String, dynamic>);
+                    return SendItemPage(
+                        user: state.extra as Map<String, dynamic>);
                   },
                 ),
               ],
@@ -90,6 +91,31 @@ final GoRouter router = GoRouter(
         ),
       ],
     ),
+    ShellRoute(
+      builder: (BuildContext context, GoRouterState state, Widget child) {
+        return ScaffoldWithNavBarRider(child: child);
+      },
+      routes: <RouteBase>[
+        GoRoute(
+          path: '/tasklist',
+          builder: (BuildContext context, GoRouterState state) {
+            return const Scaffold(body: Text("tasklist"));
+          },
+        ),
+        GoRoute(
+          path: '/homerider',
+          builder: (BuildContext context, GoRouterState state) {
+            return const Scaffold(body: Text("homerider"));
+          },
+        ),
+        GoRoute(
+          path: '/profilerider',
+          builder: (BuildContext context, GoRouterState state) {
+            return const ProfilePage();
+          },
+        ),
+      ],
+    )
   ],
 );
 
@@ -108,6 +134,7 @@ class ScaffoldWithNavBar extends StatelessWidget {
           child: CustomBottomNavigationBar(
             currentIndex: _calculateSelectedIndex(context),
             onTap: (int idx) => _onItemTapped(idx, context),
+            isRider: false,
           ),
         ),
       ),
@@ -138,14 +165,62 @@ class ScaffoldWithNavBar extends StatelessWidget {
   }
 }
 
+class ScaffoldWithNavBarRider extends StatelessWidget {
+  const ScaffoldWithNavBarRider({Key? key, required this.child})
+      : super(key: key);
+  final Widget child;
+  final Color mainColor = const Color(0xFF0A9830);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: child,
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(color: Colors.white),
+        child: SafeArea(
+          child: CustomBottomNavigationBar(
+            currentIndex: _calculateSelectedIndex(context),
+            onTap: (int idx) => _onItemTapped(idx, context),
+            isRider: true,
+          ),
+        ),
+      ),
+    );
+  }
+
+  static int _calculateSelectedIndex(BuildContext context) {
+    final String location = GoRouterState.of(context).uri.path;
+    if (location.startsWith('/tasklist')) return 0;
+    if (location.startsWith('/homerider')) return 1;
+    if (location.startsWith('/profilerider')) return 2;
+    return 0;
+  }
+
+  void _onItemTapped(int index, BuildContext context) {
+    switch (index) {
+      case 0:
+        GoRouter.of(context).go('/tasklist');
+        break;
+      case 1:
+        GoRouter.of(context).go('/homerider');
+        break;
+      case 2:
+        GoRouter.of(context).go('/profilerider');
+        break;
+    }
+  }
+}
+
 class CustomBottomNavigationBar extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTap;
+  final bool isRider;
 
   const CustomBottomNavigationBar({
     super.key,
     required this.currentIndex,
     required this.onTap,
+    required this.isRider,
   });
 
   @override
@@ -155,9 +230,15 @@ class CustomBottomNavigationBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildNavItem(Icons.local_shipping, 'Percel', 0),
-          _buildNavItem(Icons.send, 'Send', 1),
-          _buildNavItem(Icons.person, 'Profile', 2),
+          if (isRider) ...[
+            _buildNavItem(Icons.list_alt, 'Task List', 0),
+            _buildNavItem(Icons.home, 'Home', 1),
+            _buildNavItem(Icons.person, 'Profile', 2),
+          ] else ...[
+            _buildNavItem(Icons.local_shipping, 'Parcel', 0),
+            _buildNavItem(Icons.send, 'Send', 1),
+            _buildNavItem(Icons.person, 'Profile', 2),
+          ],
         ],
       ),
     );
@@ -176,14 +257,14 @@ class CustomBottomNavigationBar extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                color: Colors.black,
+                color: isSelected ? const Color(0xFF0A9830) : Colors.black,
                 size: isSelected ? 26 : 22,
               ),
               if (isSelected)
                 Text(
                   label,
                   style: const TextStyle(
-                    color: Colors.black,
+                    color: Color(0xFF0A9830),
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                   ),

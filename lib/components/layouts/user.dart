@@ -26,6 +26,7 @@ class UserLayout extends ConsumerWidget {
     }
 
     final userData = authState.userData!;
+    final bool isRider = userData['role'] == 'Rider';
 
     return Scaffold(
       appBar: AppBar(
@@ -53,7 +54,12 @@ class UserLayout extends ConsumerWidget {
             ),
             GestureDetector(
               onTap: () {
-                context.go('/profile');
+                // ตรวจสอบว่าเป็น Rider หรือ User แล้ว route ไปยังหน้า Profile ที่เหมาะสม
+                if (isRider) {
+                  context.go('/profilerider');
+                } else {
+                  context.go('/profile');
+                }
               },
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
