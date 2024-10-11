@@ -50,7 +50,6 @@ class _SendItemPageState extends ConsumerState<SendItemPage> {
   Future<void> createNewOrder() async {
     Map<String, dynamic> payload = {
       "receiver_id": widget.user['user_id'],
-      // "rider_id": "66fd18b66e8587dad490b5b1",
       "product_list": _items.map((item) {
         return {
           "name": item['name'],
@@ -65,7 +64,7 @@ class _SendItemPageState extends ConsumerState<SendItemPage> {
     var response = await ref.read(orderService).create(payload);
     if (response['statusCode'] == 200) {
       debugPrint("Created oder success");
-      context.go('/send');
+      context.go('/send?refresh=true');
     }
   }
 
