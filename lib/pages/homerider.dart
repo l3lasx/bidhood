@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class HomeRiderPage extends ConsumerStatefulWidget {
   const HomeRiderPage({super.key});
@@ -19,6 +21,8 @@ class _HomeRiderPageState extends ConsumerState<HomeRiderPage> {
   bool _isLoading = true;
   int _currentStep = 0;
   List<String> _steps = ['รับงาน', 'เข้ารับพัสดุ', 'รับสินค้าแล้วกำลังเดินทาง', 'นำส่งสินค้าแล้ว'];
+  String? _receivePhoto;
+  String? _deliveryPhoto;
 
   @override
   void initState() {
@@ -55,6 +59,8 @@ class _HomeRiderPageState extends ConsumerState<HomeRiderPage> {
       'status': 'In Progress',
       'created_at': '2023-06-01T10:00:00Z',
     };
+    // Set initial step to 1 (เข้ารับพัสดุ) instead of 0
+    _currentStep = 1;
     _fetchRouteAndDistance();
   }
 
@@ -91,6 +97,21 @@ class _HomeRiderPageState extends ConsumerState<HomeRiderPage> {
       print('Failed to fetch route and distance');
       setState(() {
         _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _capturePhoto(int step) async {
+    final ImagePicker _picker = ImagePicker();
+    final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
+    
+    if (photo != null) {
+      setState(() {
+        if (step == 1) {
+          _receivePhoto = photo.path;
+        } else if (step == 3) {
+          _deliveryPhoto = photo.path;
+        }
       });
     }
   }
@@ -361,8 +382,8 @@ class _HomeRiderPageState extends ConsumerState<HomeRiderPage> {
                 _buildStepper(),
                 SizedBox(height: 15),
                 ElevatedButton(
-                  onPressed: _currentStep < _steps.length - 1 ? _updateOrderStatus : null,
-                  child: Text('Update Status'),
+                  onPressed: _updateOrderStatus,
+                  child: Text(_getButtonText()),
                   style: ElevatedButton.styleFrom(
                     foregroundColor: Colors.white, backgroundColor: Colors.green,
                   ),
@@ -384,7 +405,7 @@ class _HomeRiderPageState extends ConsumerState<HomeRiderPage> {
 
         return IntrinsicHeight(
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(
                 width: 30,
@@ -409,7 +430,16 @@ class _HomeRiderPageState extends ConsumerState<HomeRiderPage> {
                       Expanded(
                         child: Container(
                           width: 2,
-                          color: isActive ? Colors.green : Colors.grey,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                isActive ? Colors.green : Colors.grey,
+                                index + 1 <= _currentStep ? Colors.green : Colors.grey,
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                   ],
@@ -417,16 +447,29 @@ class _HomeRiderPageState extends ConsumerState<HomeRiderPage> {
               ),
               SizedBox(width: 10),
               Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                      color: isActive ? Colors.black : Colors.grey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                        color: isActive ? Colors.black : Colors.grey,
+                      ),
                     ),
-                  ),
+                    if (index == 1 && _receivePhoto != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Image.file(File(_receivePhoto!), height: 50, width: 50),
+                      ),
+                    if (index == 3 && _deliveryPhoto != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Image.file(File(_deliveryPhoto!), height: 50, width: 50),
+                      ),
+                    SizedBox(height: 20), // Add space between steps
+                  ],
                 ),
               ),
             ],
@@ -453,11 +496,40 @@ class _HomeRiderPageState extends ConsumerState<HomeRiderPage> {
 
   void _updateOrderStatus() {
     if (_currentStep < _steps.length - 1) {
-      setState(() {
-        _currentStep++;
-      });
-      // Here you would typically update the order status in your backend
-      // For example: await ref.read(orderService).updateStatus(currentTask['order_id'], _steps[_currentStep]);
+      if (_currentStep == 1 && _receivePhoto == null) {
+        _capturePhoto(1);
+      } else if (_currentStep == 2) {
+        setState(() {
+          _currentStep++;
+        });
+      } else {
+        setState(() {
+          _currentStep++;
+        });
+      }
+    } else if (_currentStep == _steps.length - 1) {
+      if (_deliveryPhoto == null) {
+        _capturePhoto(3);
+      } else {
+        // This is the final step and we have the delivery photo
+        print('Order completed');
+        // For example: await ref.read(orderService).completeOrder(currentTask['order_id']);
+      }
+    }
+    
+    // Here you would typically update the order status in your backend
+    // For example: await ref.read(orderService).updateStatus(currentTask['order_id'], _steps[_currentStep]);
+  }
+
+  String _getButtonText() {
+    if (_currentStep == 1 && _receivePhoto == null) {
+      return 'ถ่ายรูปเข้ารับพัสดุ';
+    } else if (_currentStep == 3 && _deliveryPhoto == null) {
+      return 'ถ่ายรูปส่งพัสดุ';
+    } else if (_currentStep == _steps.length - 1 && _deliveryPhoto != null) {
+      return 'เสร็จสิ้นการส่ง';
+    } else {
+      return 'อัพเดทสถานะ';
     }
   }
 }
