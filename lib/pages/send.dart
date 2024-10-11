@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:bidhood/components/cards/itemcard.dart'; // เพิ่ม import นี้
 import 'package:bidhood/components/bottomsheet/item_details_bottomsheet.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:bidhood/providers/auth.dart';
 
 class SendPage extends ConsumerStatefulWidget {
   const SendPage({super.key});
@@ -51,6 +52,8 @@ class _SendPageState extends ConsumerState<SendPage> {
 
   @override
   Widget build(BuildContext context) {
+    final userRole = ref.watch(authProvider).userData['role'];
+    
     return UserLayout(
       key: UniqueKey(),
       bodyWidget: Positioned(
@@ -172,6 +175,7 @@ class _SendPageState extends ConsumerState<SendPage> {
                                                     ['lat'],
                                                 order['receiver']['location'][
                                                     'long']), // Example coordinates
+                                            userRole: userRole,
                                           );
                                         },
                                       );

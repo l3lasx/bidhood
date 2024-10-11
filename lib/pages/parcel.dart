@@ -3,15 +3,17 @@ import 'package:bidhood/components/layouts/user.dart';
 import 'package:flutter/material.dart';
 import 'package:bidhood/components/bottomsheet/item_details_bottomsheet.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bidhood/providers/auth.dart';
 
-class ParcelPage extends StatefulWidget {
+class ParcelPage extends ConsumerStatefulWidget {
   const ParcelPage({super.key});
 
   @override
-  State<ParcelPage> createState() => _ParcelPageState();
+  ConsumerState<ParcelPage> createState() => _ParcelPageState();
 }
 
-class _ParcelPageState extends State<ParcelPage> {
+class _ParcelPageState extends ConsumerState<ParcelPage> {
   int itemCount = 0;
   void incrementItemCount() {
     setState(() {
@@ -21,6 +23,8 @@ class _ParcelPageState extends State<ParcelPage> {
 
   @override
   Widget build(BuildContext context) {
+    final userRole = ref.watch(authProvider).userData['role'];
+    
     return UserLayout(
       bodyWidget: Positioned(
         top: 50,
@@ -109,6 +113,7 @@ class _ParcelPageState extends State<ParcelPage> {
                                             100.5018), // Example coordinates for Bangkok
                                         receiverLocation: const LatLng(13.7563,
                                             100.5100), // Example coordinates
+                                        userRole: userRole,
                                       );
                                     },
                                   );

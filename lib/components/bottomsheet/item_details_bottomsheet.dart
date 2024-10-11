@@ -17,6 +17,7 @@ class ItemDetailsDrawer extends StatefulWidget {
   final DateTime? completionDate;
   final LatLng senderLocation;
   final LatLng receiverLocation;
+  final String userRole;
 
   const ItemDetailsDrawer({
     Key? key,
@@ -31,6 +32,7 @@ class ItemDetailsDrawer extends StatefulWidget {
     this.completionDate,
     required this.senderLocation,
     required this.receiverLocation,
+    required this.userRole,
   }) : super(key: key);
 
   @override
@@ -222,6 +224,26 @@ class _ItemDetailsDrawerState extends State<ItemDetailsDrawer> {
               _isLoading
                   ? CircularProgressIndicator()
                   : _buildInfoRow('ระยะทาง', '${_distance.toStringAsFixed(2)} กิโลเมตร'),
+              if (widget.userRole == 'Rider')
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // TODO: Implement job acceptance logic
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('รับงานแล้ว')),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: Text(
+                      'รับงาน',
+                      style: TextStyle(fontSize: 18, color: Colors.white),
+                    ),
+                  ),
+                ),
             ],
           ),
         );
