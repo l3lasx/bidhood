@@ -1,58 +1,106 @@
 // ignore_for_file: unused_field
-
 import 'dart:io';
-
 import 'package:bidhood/components/cards/usercard.dart';
 import 'package:bidhood/components/layouts/user.dart';
+import 'package:bidhood/services/order.dart';
+import 'package:bidhood/services/upload.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:bidhood/components/bottomsheet/add_item_bottomsheet.dart';
 
-class SendItemPage extends StatefulWidget {
-  const SendItemPage({super.key});
+class SendItemPage extends ConsumerStatefulWidget {
+  final Map<String, dynamic> user;
+
+  const SendItemPage({super.key, required this.user});
 
   @override
-  State<SendItemPage> createState() => _SendItemPageState();
+  ConsumerState<SendItemPage> createState() => _SendItemPageState();
 }
 
-class _SendItemPageState extends State<SendItemPage> {
+class _SendItemPageState extends ConsumerState<SendItemPage> {
   final Color mainColor = const Color(0xFF0A9830);
-  final String userName = "John Doe"; // Placeholder user name
+  final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey =
+      GlobalKey<ScaffoldMessengerState>();
   int _currentStep = 0;
   int itemCount = 0; // Number of items
   XFile? _image; // Variable to store the selected image
+  late String statusPicture;
   final TextEditingController _detailsController =
       TextEditingController(); // Controller for the details text field
   final TextEditingController _quantityController =
       TextEditingController(text: '1'); // Controller for the quantity field
-  List<Map<String, dynamic>> _items = []; // List to store added items
+  final List<Map<String, dynamic>> _items = []; // List to store added items
 
   Future<void> _pickImage(ImageSource source) async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: source);
-    setState(() {
-      _image = image;
-    });
+    var upload = await ref.read(uploadService).uploadImage(image!);
+    if (upload['statusCode'] == 200) {
+      var res = upload['data'];
+      setState(() {
+        _image = image;
+        statusPicture = res['url'];
+      });
+    }
+  }
+
+  Future<void> createNewOrder() async {
+    Map<String, dynamic> payload = {
+      "receiver_id": widget.user['user_id'],
+      // "rider_id": "66fd18b66e8587dad490b5b1",
+      "product_list": _items.map((item) {
+        return {
+          "name": item['name'],
+          "description": item['details'],
+          "image": item['image'],
+          "quantity": item['quantity'],
+        };
+      }).toList(),
+      "event": {"picture": statusPicture}
+    };
+
+    var response = await ref.read(orderService).create(payload);
+    if (response['statusCode'] == 200) {
+      debugPrint("Created oder success");
+      context.go('/send');
+    }
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   void _showAddItemDrawer() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (BuildContext context) {
+      builder: (BuildContext bottomSheetContext) {
         return AddItemBottomSheet(
-          onItemAdded: (newItem) {
-            setState(() {
-              _items.add(newItem);
-              itemCount++;
-            });
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('เพิ่มรายการสำเร็จ'),
-                backgroundColor: Colors.green,
-              ),
-            );
+          onItemAdded: (Map<String, dynamic> newItem) async {
+            try {
+              XFile productImage = newItem['image'];
+              var upload =
+                  await ref.read(uploadService).uploadImage(productImage);
+              if (upload['statusCode'] == 200) {
+                var res = upload['data'];
+                newItem['image'] = res['url'];
+                if (mounted) {
+                  setState(() {
+                    _items.add(newItem);
+                    itemCount++;
+                  });
+                  Navigator.pop(bottomSheetContext);
+                }
+              } else {
+                throw Exception('Upload failed');
+              }
+            } catch (error) {
+              debugPrint('$error');
+            }
           },
         );
       },
@@ -62,6 +110,7 @@ class _SendItemPageState extends State<SendItemPage> {
   @override
   Widget build(BuildContext context) {
     return UserLayout(
+      key: _scaffoldMessengerKey,
       bodyWidget: Positioned(
         top: 50,
         left: 0,
@@ -84,13 +133,12 @@ class _SendItemPageState extends State<SendItemPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const UserCard(
-                    imageUrl:
-                        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2UOW09a8y-Ue_FtTFn01C4U4-dZmIax-P_g&s',
-                    fullName: 'สมชาย ใจดี',
-                    address:
-                        '123 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110',
-                    phoneNumber: '02-123-4567',
+                  UserCard(
+                    imageUrl: widget.user['avatar_picture'] ??
+                        'https://via.placeholder.com/150',
+                    fullName: widget.user['fullname'] ?? 'Unknown Name',
+                    address: widget.user['address'] ?? 'No address provided',
+                    phoneNumber: widget.user['phone'] ?? 'No phone number',
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -191,7 +239,9 @@ class _SendItemPageState extends State<SendItemPage> {
                             ),
                             const SizedBox(height: 16),
                             Column(
-                              children: _items.map((item) {
+                              children: _items.asMap().entries.map((entry) {
+                                final item = entry.value; // Get the item
+                                final index = entry.key; // Get the index
                                 return Padding(
                                   padding:
                                       const EdgeInsets.symmetric(vertical: 8.0),
@@ -200,11 +250,29 @@ class _SendItemPageState extends State<SendItemPage> {
                                         MainAxisAlignment.spaceBetween,
                                     children: [
                                       if (item['image'] != null)
-                                        Image.file(
-                                          File(item['image'].path),
-                                          width: 50,
-                                          height: 50,
-                                        ),
+                                        CachedNetworkImage(
+                                            imageUrl: item['image'],
+                                            width: 50,
+                                            height: 50,
+                                            fit: BoxFit.cover,
+                                            placeholder: (context, url) =>
+                                                Container(
+                                                  width: 50,
+                                                  height: 50,
+                                                  color: Colors.grey[300],
+                                                  child: const Center(
+                                                      child:
+                                                          CircularProgressIndicator()),
+                                                ),
+                                            errorWidget: (context, url,
+                                                    error) =>
+                                                Container(
+                                                  width: 50,
+                                                  height: 50,
+                                                  color: Colors.grey[300],
+                                                  child:
+                                                      const Icon(Icons.error),
+                                                )),
                                       Expanded(
                                         child: Padding(
                                           padding: const EdgeInsets.symmetric(
@@ -213,6 +281,18 @@ class _SendItemPageState extends State<SendItemPage> {
                                         ),
                                       ),
                                       Text('จำนวน: ${item['quantity']}'),
+                                      IconButton(
+                                        icon: const Icon(
+                                            Icons.remove_circle_outline,
+                                            color: Colors.red),
+                                        onPressed: () {
+                                          setState(() {
+                                            _items.removeAt(
+                                                index); // Use the correct index
+                                            itemCount--;
+                                          });
+                                        },
+                                      ),
                                     ],
                                   ),
                                 );
@@ -257,7 +337,7 @@ class _SendItemPageState extends State<SendItemPage> {
                               ),
                             ),
                           const SizedBox(height: 16),
-                          Text(
+                          const Text(
                             'หมายเหตุ: คุณต้องถ่ายรูปเพื่อดำเนินการต่อ',
                             style: TextStyle(
                                 color: Colors.red, fontStyle: FontStyle.italic),
@@ -272,9 +352,9 @@ class _SendItemPageState extends State<SendItemPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          const Text(
                             'สรุปรายการส่ง:',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
@@ -290,11 +370,27 @@ class _SendItemPageState extends State<SendItemPage> {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     if (item['image'] != null)
-                                      Image.file(
-                                        File(item['image'].path),
-                                        width: 50,
-                                        height: 50,
-                                      ),
+                                      CachedNetworkImage(
+                                          imageUrl: item['image'],
+                                          width: 50,
+                                          height: 50,
+                                          fit: BoxFit.cover,
+                                          placeholder: (context, url) =>
+                                              Container(
+                                                width: 50,
+                                                height: 50,
+                                                color: Colors.grey[300],
+                                                child: const Center(
+                                                    child:
+                                                        CircularProgressIndicator()),
+                                              ),
+                                          errorWidget: (context, url, error) =>
+                                              Container(
+                                                width: 50,
+                                                height: 50,
+                                                color: Colors.grey[300],
+                                                child: const Icon(Icons.error),
+                                              )),
                                     Expanded(
                                       child: Padding(
                                         padding: const EdgeInsets.symmetric(
@@ -389,7 +485,7 @@ class _SendItemPageState extends State<SendItemPage> {
                               ),
                             ),
                             onPressed: () {
-                              context.go('/send');
+                              createNewOrder();
                             },
                             child: const Text(
                               'ตกลง',

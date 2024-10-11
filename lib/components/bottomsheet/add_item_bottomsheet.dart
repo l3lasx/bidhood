@@ -1,17 +1,20 @@
+// ignore_for_file: library_private_types_in_public_api
+
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
-class AddItemBottomSheet extends StatefulWidget {
+class AddItemBottomSheet extends ConsumerStatefulWidget {
   final Function(Map<String, dynamic>) onItemAdded;
 
-  const AddItemBottomSheet({Key? key, required this.onItemAdded}) : super(key: key);
+  const AddItemBottomSheet({super.key, required this.onItemAdded});
 
   @override
-  _AddItemBottomSheetState createState() => _AddItemBottomSheetState();
+  ConsumerState<AddItemBottomSheet> createState() => _AddItemBottomSheetState();
 }
 
-class _AddItemBottomSheetState extends State<AddItemBottomSheet> {
+class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
   final Color mainColor = const Color(0xFF0A9830);
   XFile? _image;
   final TextEditingController _detailsController = TextEditingController();
@@ -26,18 +29,23 @@ class _AddItemBottomSheetState extends State<AddItemBottomSheet> {
   }
 
   @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
       height: MediaQuery.of(context).size.height * 0.8, // Fixed height
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.5),
             spreadRadius: 5,
             blurRadius: 7,
-            offset: Offset(0, 3),
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -46,7 +54,7 @@ class _AddItemBottomSheetState extends State<AddItemBottomSheet> {
           Container(
             width: 40,
             height: 5,
-            margin: EdgeInsets.symmetric(vertical: 10),
+            margin: const EdgeInsets.symmetric(vertical: 10),
             decoration: BoxDecoration(
               color: Colors.grey[300],
               borderRadius: BorderRadius.circular(10),
@@ -55,11 +63,11 @@ class _AddItemBottomSheetState extends State<AddItemBottomSheet> {
           Expanded(
             child: SingleChildScrollView(
               child: Padding(
-                padding: EdgeInsets.all(20),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
+                    const Text(
                       'สินค้าของคุณ',
                       style: TextStyle(
                         fontSize: 24,
@@ -67,7 +75,7 @@ class _AddItemBottomSheetState extends State<AddItemBottomSheet> {
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
@@ -89,7 +97,7 @@ class _AddItemBottomSheetState extends State<AddItemBottomSheet> {
                         ),
                       ],
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     Container(
                       height: 280,
                       width: double.infinity,
@@ -106,7 +114,7 @@ class _AddItemBottomSheetState extends State<AddItemBottomSheet> {
                                 fit: BoxFit.contain,
                               ),
                             )
-                          : Center(
+                          : const Center(
                               child: Text(
                                 'กรุณาเลือกรูปภาพ',
                                 style: TextStyle(
@@ -117,7 +125,7 @@ class _AddItemBottomSheetState extends State<AddItemBottomSheet> {
                             ),
                       ),
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     TextField(
                       controller: _detailsController,
                       decoration: const InputDecoration(
@@ -125,7 +133,7 @@ class _AddItemBottomSheetState extends State<AddItemBottomSheet> {
                         border: OutlineInputBorder(),
                       ),
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     TextField(
                       controller: _quantityController,
                       decoration: const InputDecoration(
@@ -134,15 +142,15 @@ class _AddItemBottomSheetState extends State<AddItemBottomSheet> {
                       ),
                       keyboardType: TextInputType.number,
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     ElevatedButton.icon(
                       onPressed: () {
                         if (_image == null ||
                             _detailsController.text.isEmpty ||
                             _quantityController.text.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text('กรุณากรอกข้อมูลให้ครบทุกช่อง'),
+                            const SnackBar(
+                              content: Text('กรุณากรอกข้อมูลให้ครบทุกช่อง'),
                               backgroundColor: Colors.red,
                             ),
                           );

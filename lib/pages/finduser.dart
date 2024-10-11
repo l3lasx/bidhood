@@ -1,17 +1,64 @@
 import 'package:bidhood/components/cards/usercard.dart';
 import 'package:bidhood/components/layouts/user.dart';
+import 'package:bidhood/services/user.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class FindUserPage extends StatefulWidget {
+class FindUserPage extends ConsumerStatefulWidget {
   const FindUserPage({super.key});
 
   @override
-  State<FindUserPage> createState() => _FindUserPageState();
+  ConsumerState<FindUserPage> createState() => _FindUserPageState();
 }
-class _FindUserPageState extends State<FindUserPage> {
+
+class _FindUserPageState extends ConsumerState<FindUserPage> {
   final Color mainColor = const Color(0xFF0A9830);
   final TextEditingController _searchController = TextEditingController();
+  late Future<Map<String, dynamic>> userListData;
+  List<dynamic> filteredUsers = [];
+
+  @override
+  void initState() {
+    super.initState();
+    userListData = _fetchAllUser();
+    userListData.then((data) {
+      setState(() {
+        filteredUsers = data['data']['data'];
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<Map<String, dynamic>> _fetchAllUser() async {
+    return await ref.read(userService).users();
+  }
+
+  void _filterUsers(String query) {
+    if (query.isEmpty) {
+      userListData.then((data) {
+        setState(() {
+          filteredUsers = data['data']['data'];
+        });
+      });
+    } else {
+      setState(() {
+        filteredUsers = filteredUsers.where((user) {
+          final fullname = user['fullname']?.toLowerCase() ?? '';
+          final phoneNumber = user['phone']?.toLowerCase() ?? '';
+          final lowercaseQuery = query.toLowerCase();
+          return fullname.contains(lowercaseQuery) ||
+              phoneNumber.contains(lowercaseQuery);
+        }).toList();
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return UserLayout(
@@ -32,6 +79,7 @@ class _FindUserPageState extends State<FindUserPage> {
                       Expanded(
                         child: TextField(
                           controller: _searchController,
+                          onChanged: _filterUsers,
                           decoration: InputDecoration(
                             hintText: 'ค้นหาผู้ใช้',
                             border: OutlineInputBorder(
@@ -44,40 +92,54 @@ class _FindUserPageState extends State<FindUserPage> {
                       ),
                       const SizedBox(width: 10),
                       ElevatedButton(
-                        onPressed: () {
-                          // Implement search functionality here
-                          debugPrint('Searching for: ${_searchController.text}');
-                        },
+                        onPressed: () => _filterUsers(_searchController.text),
                         style: ElevatedButton.styleFrom(
                           shape: const CircleBorder(),
-                          padding: EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(16),
                           backgroundColor: mainColor,
                         ),
                         child: const Icon(Icons.search, color: Colors.white),
                       ),
                     ],
                   ),
-                  const SizedBox(
-                      height: 20), // Add some space between search and list
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: 10, // หรือจำนวน UserCard ที่คุณต้องการแสดง
-                    itemBuilder: (context, index) {
-                      return GestureDetector(
-                        onTap: () {
-                          // เมื่อ UserCard ถูกแตะ, นำทางไปยัง SendItemPage
-                          context.go('/send/finduser/senditem');
-                        },
-                        child: const UserCard(
-                          imageUrl:
-                              'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2UOW09a8y-Ue_FtTFn01C4U4-dZmIax-P_g&s',
-                          fullName: 'สมชาย ใจดี',
-                          address:
-                              '123 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110',
-                          phoneNumber: '02-123-4567',
-                        ),
-                      );
+                  const SizedBox(height: 20),
+                  FutureBuilder<Map<String, dynamic>>(
+                    future: userListData,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      } else if (snapshot.hasError) {
+                        return Center(child: Text('Error: ${snapshot.error}'));
+                      } else if (snapshot.hasData) {
+                        if (filteredUsers.isEmpty) {
+                          return const Center(
+                              child: Text('ไม่พบผู้ใช้งานระบบ'));
+                        }
+                        return ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: filteredUsers.length,
+                          itemBuilder: (context, index) {
+                            final user = filteredUsers[index];
+                            return GestureDetector(
+                              onTap: () {
+                                context.go('/send/finduser/senditem',
+                                    extra: user);
+                              },
+                              child: UserCard(
+                                imageUrl: user['avatar_picture'] ??
+                                    'https://via.placeholder.com/150',
+                                fullName: user['fullname'] ?? 'Unknown Name',
+                                address:
+                                    user['address'] ?? 'No address provided',
+                                phoneNumber: user['phone'] ?? 'No phone number',
+                              ),
+                            );
+                          },
+                        );
+                      }
+                      return const Center(
+                          child: Text('ไม่พบผู้ใช้งานระบบ'));
                     },
                   ),
                 ],
