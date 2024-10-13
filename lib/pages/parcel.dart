@@ -1,8 +1,7 @@
-import 'package:bidhood/components/cards/itemcard.dart';
 import 'package:bidhood/components/layouts/user.dart';
+import 'package:bidhood/hooks/oderlist.dart';
+import 'package:bidhood/services/order.dart';
 import 'package:flutter/material.dart';
-import 'package:bidhood/components/bottomsheet/item_details_bottomsheet.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bidhood/providers/auth.dart';
 
@@ -14,17 +13,32 @@ class ParcelPage extends ConsumerStatefulWidget {
 }
 
 class _ParcelPageState extends ConsumerState<ParcelPage> {
-  int itemCount = 0;
-  void incrementItemCount() {
+  int totals = 0;
+  late Future<Map<String, dynamic>> orderList;
+
+  Future<Map<String, dynamic>> _fetchOrderData() async {
+    var result = await ref.read(orderService).getMeReceiver();
+    final orders = result['data']?['data'];
     setState(() {
-      itemCount++;
+      totals = orders.length ?? 0;
     });
+    return result;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    orderList = _fetchOrderData();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final userRole = ref.watch(authProvider).userData['role'];
-    
     return UserLayout(
       bodyWidget: Positioned(
         top: 50,
@@ -44,14 +58,12 @@ class _ParcelPageState extends ConsumerState<ParcelPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       ElevatedButton(
-                        onPressed: () {
-                          incrementItemCount();
-                        },
+                        onPressed: () {},
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.black,
                         ),
                         child: Text(
-                          'รายการจัดส่งทั้งหมด ($itemCount)',
+                          'รายการที่คุณจะได้รับ ($totals)',
                           style: const TextStyle(
                               color: Colors.white, fontSize: 14),
                         ),
@@ -59,70 +71,10 @@ class _ParcelPageState extends ConsumerState<ParcelPage> {
                     ],
                   ),
                 ),
-                Expanded(
-                  child: itemCount == 0
-                      ? const Center(
-                          child: Text(
-                            'คุณยังไม่มีการจัดส่งสินค้า',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        )
-                      : ListView.builder(
-                          itemCount: itemCount,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          itemBuilder: (context, index) {
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: ItemCard(
-                                orderId: 'ORD${index + 1}',
-                                sender: 'Sender ${index + 1}',
-                                receiver: 'Receiver ${index + 1}',
-                                receiverAddress: 'Address ${index + 1}',
-                                itemImages: const [
-                                  'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2UOW09a8y-Ue_FtTFn01C4U4-dZmIax-P_g&s',
-                                  'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2UOW09a8y-Ue_FtTFn01C4U4-dZmIax-P_g&s',
-                                ],
-                                deliveryStatus: 'Pending',
-                                rider: 'Rider ${index + 1}',
-                                deliveryDate: DateTime.now(),
-                                completionDate: null,
-                                onTap: () {
-                                  showBottomSheet(
-                                    context: context,
-                                    backgroundColor: Colors.transparent,
-                                    builder: (BuildContext context) {
-                                      return ItemDetailsDrawer(
-                                        orderId: 'ORD${index + 1}',
-                                        sender: 'Sender ${index + 1}',
-                                        receiver: 'Receiver ${index + 1}',
-                                        receiverAddress: 'Address ${index + 1}',
-                                        itemImages: const [
-                                          'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2UOW09a8y-Ue_FtTFn01C4U4-dZmIax-P_g&s',
-                                          'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2UOW09a8y-Ue_FtTFn01C4U4-dZmIax-P_g&s',
-                                        ],
-                                        deliveryStatus: 'Pending',
-                                        rider: 'Rider ${index + 1}',
-                                        deliveryDate: DateTime.now(),
-                                        completionDate: null,
-                                        senderLocation: const LatLng(13.7563,
-                                            100.5018), // Example coordinates for Bangkok
-                                        receiverLocation: const LatLng(13.7563,
-                                            100.5100), // Example coordinates
-                                        userRole: userRole,
-                                      );
-                                    },
-                                  );
-                                },
-                              ),
-                            );
-                          },
-                        ),
-                ),
+                OrderListView(
+                  orderFuture: orderList,
+                  userRole: userRole,
+                )
               ],
             ),
           ),

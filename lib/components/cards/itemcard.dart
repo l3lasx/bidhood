@@ -7,13 +7,13 @@ class ItemCard extends StatelessWidget {
   final String receiverAddress;
   final List<String> itemImages;
   final String deliveryStatus;
-  final String rider;
-  final DateTime deliveryDate;
+  final String? rider;
+  final DateTime? deliveryDate;
   final DateTime? completionDate;
   final VoidCallback onTap;
 
   const ItemCard({
-    Key? key,
+    super.key,
     required this.orderId,
     required this.sender,
     required this.receiver,
@@ -24,7 +24,7 @@ class ItemCard extends StatelessWidget {
     required this.deliveryDate,
     this.completionDate,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +33,7 @@ class ItemCard extends StatelessWidget {
       child: Card(
         elevation: 4.0,
         margin: const EdgeInsets.symmetric(vertical: 8.0),
-        color: Colors.white, // เพิ่มบรรทัดนี้เพื่อกำหนดพื้นหลังเป็นสีขาว
+        color: Colors.white,
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -52,13 +52,17 @@ class ItemCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text('Delivery Status: $deliveryStatus'),
               const SizedBox(height: 8),
-              Text('Rider: $rider'),
-              const SizedBox(height: 8),
-              Text('Delivery Date: ${deliveryDate.toLocal()}'),
-              if (completionDate != null)
-                Text('Completion Date: ${completionDate!.toLocal()}'),
-              const SizedBox(height: 8),
+              if (rider != null && rider!.isNotEmpty) ...[
+                Text('Rider: $rider'),
+                const SizedBox(height: 8),
+                if (deliveryDate != null)
+                  Text('Delivery Date: ${deliveryDate?.toLocal()}'),
+                if (completionDate != null)
+                  Text('Completion Date: ${completionDate!.toLocal()}'),
+                const SizedBox(height: 8),
+              ],
               SizedBox(
+                width: 100,
                 height: 100,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
