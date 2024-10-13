@@ -12,7 +12,7 @@ class ItemDetailsDrawer extends StatefulWidget {
   final String receiverAddress;
   final List<String> itemImages;
   final String deliveryStatus;
-  final String rider;
+  final String? rider;
   final DateTime deliveryDate;
   final DateTime? completionDate;
   final LatLng senderLocation;
@@ -20,7 +20,7 @@ class ItemDetailsDrawer extends StatefulWidget {
   final String userRole;
 
   const ItemDetailsDrawer({
-    Key? key,
+    super.key,
     required this.orderId,
     required this.sender,
     required this.receiver,
@@ -33,9 +33,10 @@ class ItemDetailsDrawer extends StatefulWidget {
     required this.senderLocation,
     required this.receiverLocation,
     required this.userRole,
-  }) : super(key: key);
+  });
 
   @override
+  // ignore: library_private_types_in_public_api
   _ItemDetailsDrawerState createState() => _ItemDetailsDrawerState();
 }
 
@@ -62,7 +63,7 @@ class _ItemDetailsDrawerState extends State<ItemDetailsDrawer> {
       final data = json.decode(response.body);
       final coordinates = data['routes'][0]['geometry']['coordinates'] as List;
       final distance = data['routes'][0]['distance'] as num;
-      
+
       setState(() {
         _routePoints = coordinates
             .map((coord) => LatLng(coord[1] as double, coord[0] as double))
@@ -71,7 +72,7 @@ class _ItemDetailsDrawerState extends State<ItemDetailsDrawer> {
         _isLoading = false;
       });
     } else {
-      print('Failed to fetch route and distance');
+      debugPrint('Failed to fetch route and distance');
       setState(() {
         _isLoading = false;
       });
@@ -88,19 +89,19 @@ class _ItemDetailsDrawerState extends State<ItemDetailsDrawer> {
         return Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             boxShadow: [
               BoxShadow(
                 color: Colors.grey.withOpacity(0.5),
                 spreadRadius: 5,
                 blurRadius: 7,
-                offset: Offset(0, 3),
+                offset: const Offset(0, 3),
               ),
             ],
           ),
           child: ListView(
             controller: controller,
-            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             children: [
               Center(
                 child: Container(
@@ -112,8 +113,8 @@ class _ItemDetailsDrawerState extends State<ItemDetailsDrawer> {
                   ),
                 ),
               ),
-              SizedBox(height: 20),
-              Text(
+              const SizedBox(height: 20),
+              const Text(
                 'รายละเอียดการจัดส่ง',
                 style: TextStyle(
                   fontSize: 24,
@@ -121,25 +122,29 @@ class _ItemDetailsDrawerState extends State<ItemDetailsDrawer> {
                 ),
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               _buildInfoRow('Order ID', widget.orderId),
               _buildInfoRow('ผู้ส่ง', widget.sender),
               _buildInfoRow('ผู้รับ', widget.receiver),
               _buildInfoRow('ที่อยู่ผู้รับ', widget.receiverAddress),
               _buildInfoRow('สถานะการจัดส่ง', widget.deliveryStatus),
-              _buildInfoRow('ผู้จัดส่ง', widget.rider),
-              _buildInfoRow('วันที่จัดส่ง', widget.deliveryDate.toLocal().toString()),
-              if (widget.completionDate != null)
-                _buildInfoRow('วันที่จัดส่งเสร็จสิ้น', widget.completionDate!.toLocal().toString()),
-              SizedBox(height: 20),
-              Text(
+              if (widget.rider != null && widget.rider!.isNotEmpty) ...[
+                _buildInfoRow('ผู้จัดส่ง', widget.rider ?? ''),
+                _buildInfoRow(
+                    'วันที่จัดส่ง', widget.deliveryDate.toLocal().toString()),
+                if (widget.completionDate != null)
+                  _buildInfoRow('วันที่จัดส่งเสร็จสิ้น',
+                      widget.completionDate!.toLocal().toString()),
+              ],
+              const SizedBox(height: 20),
+              const Text(
                 'รูปภาพสินค้า',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               SizedBox(
                 height: 120,
                 child: ListView.builder(
@@ -152,8 +157,8 @@ class _ItemDetailsDrawerState extends State<ItemDetailsDrawer> {
                         borderRadius: BorderRadius.circular(10),
                         child: Image.network(
                           widget.itemImages[index],
-                          width: 120,
-                          height: 120,
+                          width: 100,
+                          height: 100,
                           fit: BoxFit.cover,
                         ),
                       ),
@@ -161,15 +166,15 @@ class _ItemDetailsDrawerState extends State<ItemDetailsDrawer> {
                   },
                 ),
               ),
-              SizedBox(height: 20),
-              Text(
+              const SizedBox(height: 20),
+              const Text(
                 'แผนที่',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               Container(
                 height: 200,
                 decoration: BoxDecoration(
@@ -181,15 +186,20 @@ class _ItemDetailsDrawerState extends State<ItemDetailsDrawer> {
                   child: FlutterMap(
                     options: MapOptions(
                       center: LatLng(
-                        (widget.senderLocation.latitude + widget.receiverLocation.latitude) / 2,
-                        (widget.senderLocation.longitude + widget.receiverLocation.longitude) / 2,
+                        (widget.senderLocation.latitude +
+                                widget.receiverLocation.latitude) /
+                            2,
+                        (widget.senderLocation.longitude +
+                                widget.receiverLocation.longitude) /
+                            2,
                       ),
                       zoom: 12.0,
                     ),
                     children: [
                       TileLayer(
-                        urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                        subdomains: ['a', 'b', 'c'],
+                        urlTemplate:
+                            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        subdomains: const ['a', 'b', 'c'],
                       ),
                       PolylineLayer(
                         polylines: [
@@ -206,13 +216,15 @@ class _ItemDetailsDrawerState extends State<ItemDetailsDrawer> {
                             width: 40.0,
                             height: 40.0,
                             point: widget.senderLocation,
-                            builder: (ctx) => Icon(Icons.location_on, color: Colors.blue),
+                            builder: (ctx) => const Icon(Icons.location_on,
+                                color: Colors.blue),
                           ),
                           Marker(
                             width: 40.0,
                             height: 40.0,
                             point: widget.receiverLocation,
-                            builder: (ctx) => Icon(Icons.location_on, color: Colors.red),
+                            builder: (ctx) => const Icon(Icons.location_on,
+                                color: Colors.red),
                           ),
                         ],
                       ),
@@ -220,25 +232,25 @@ class _ItemDetailsDrawerState extends State<ItemDetailsDrawer> {
                   ),
                 ),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               _isLoading
-                  ? CircularProgressIndicator()
-                  : _buildInfoRow('ระยะทาง', '${_distance.toStringAsFixed(2)} กิโลเมตร'),
+                  ? const CircularProgressIndicator()
+                  : _buildInfoRow(
+                      'ระยะทาง', '${_distance.toStringAsFixed(2)} กิโลเมตร'),
               if (widget.userRole == 'Rider')
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16.0),
                   child: ElevatedButton(
                     onPressed: () {
-                      // TODO: Implement job acceptance logic
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('รับงานแล้ว')),
+                        const SnackBar(content: Text('รับงานแล้ว')),
                       );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
-                      padding: EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: Text(
+                    child: const Text(
                       'รับงาน',
                       style: TextStyle(fontSize: 18, color: Colors.white),
                     ),
@@ -271,7 +283,7 @@ class _ItemDetailsDrawerState extends State<ItemDetailsDrawer> {
             flex: 3,
             child: Text(
               value,
-              style: TextStyle(
+              style: const TextStyle(
                 fontWeight: FontWeight.w500,
               ),
             ),
