@@ -1,5 +1,7 @@
 // ignore_for_file: unused_local_variable
-
+import 'package:bidhood/pages/realtime.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'package:bidhood/pages/finduser.dart';
 import 'package:bidhood/pages/login.dart';
 import 'package:bidhood/pages/onboarding.dart';
@@ -16,7 +18,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bidhood/pages/homerider.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const ProviderScope(
     child: MyApp(),
   ));
@@ -32,6 +36,15 @@ final GoRouter router = GoRouter(
       path: '/',
       builder: (BuildContext context, GoRouterState state) {
         return const LoginPage();
+      },
+    ),
+    GoRoute(
+      path: '/realtime',
+      builder: (BuildContext context, GoRouterState state) {
+        final extraData = state.extra as Map<String, dynamic>?; // Added null check
+        return RealTimePage(
+          transactionID: extraData?['transactionID'], // Use null-aware operator
+        );
       },
     ),
     GoRoute(

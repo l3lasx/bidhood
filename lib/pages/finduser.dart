@@ -1,5 +1,6 @@
 import 'package:bidhood/components/cards/usercard.dart';
 import 'package:bidhood/components/layouts/user.dart';
+import 'package:bidhood/providers/auth.dart';
 import 'package:bidhood/services/user.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,9 +23,12 @@ class _FindUserPageState extends ConsumerState<FindUserPage> {
   void initState() {
     super.initState();
     userListData = _fetchAllUser();
+    var phone = ref.read(authProvider).userData['phone'];
     userListData.then((data) {
       setState(() {
-        filteredUsers = data['data']['data'];
+        filteredUsers = data['data']['data'].where((user) {
+          return (user['role'] != 'Rider' && user['phone'] != phone);
+        }).toList();
       });
     });
   }
@@ -40,23 +44,25 @@ class _FindUserPageState extends ConsumerState<FindUserPage> {
   }
 
   void _filterUsers(String query) {
-    if (query.isEmpty) {
-      userListData.then((data) {
-        setState(() {
-          filteredUsers = data['data']['data'];
-        });
-      });
-    } else {
+    var phone = ref.read(authProvider).userData['phone'];
+    userListData.then((data) {
       setState(() {
-        filteredUsers = filteredUsers.where((user) {
-          final fullname = user['fullname']?.toLowerCase() ?? '';
-          final phoneNumber = user['phone']?.toLowerCase() ?? '';
-          final lowercaseQuery = query.toLowerCase();
-          return fullname.contains(lowercaseQuery) ||
-              phoneNumber.contains(lowercaseQuery);
+        filteredUsers = data['data']['data'].where((user) {
+          if (user['role'] != 'Rider' && user['phone'] != phone) {
+            return true;
+          }
+          if (query.isEmpty) {
+            return true; // แสดงทุกคนถ้าไม่มีการค้นหา
+          } else {
+            final fullname = user['fullname']?.toLowerCase() ?? '';
+            final phoneNumber = user['phone']?.toLowerCase() ?? '';
+            final lowercaseQuery = query.toLowerCase();
+            return fullname.contains(lowercaseQuery) ||
+                phoneNumber.contains(lowercaseQuery);
+          }
         }).toList();
       });
-    }
+    });
   }
 
   @override
@@ -138,8 +144,7 @@ class _FindUserPageState extends ConsumerState<FindUserPage> {
                           },
                         );
                       }
-                      return const Center(
-                          child: Text('ไม่พบผู้ใช้งานระบบ'));
+                      return const Center(child: Text('ไม่พบผู้ใช้งานระบบ'));
                     },
                   ),
                 ],

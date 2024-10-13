@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "674956588315",
+    "firebase_url": "https://bidhood-api-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "bidhood-api",
+    "storage_bucket": "bidhood-api.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:674956588315:android:934f236a6d2b96be458fbe",
+        "android_client_info": {
+          "package_name": "com.example.bidhood"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRcYIqDSD--TxsfS-pTsVldtMul74pRXY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

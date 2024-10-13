@@ -31,6 +31,17 @@ class UserLayout extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: mainColor,
+        leading: context.canPop()
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () => {
+                  if (context.canPop())
+                    {context.pop()}
+                  else
+                    {GoRouter.of(context).go('/onboarding')}
+                },
+              )
+            : null,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
