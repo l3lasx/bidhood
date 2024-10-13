@@ -8,13 +8,40 @@ class OrderService {
   final Dio dio;
 
   OrderService(this.dio, ref);
-  
+
   Future<Map<String, dynamic>> create(Map<String, dynamic> data) async {
     try {
       final api = config['endpoint'] + '/orders';
       var response = await dio.post(
         api,
         data: data,
+        options: Options(headers: {'Content-Type': 'application/json'}),
+      );
+      return {
+        "statusCode": response.statusCode,
+        "data": response.data,
+      };
+    } catch (e) {
+      debugPrint("$e");
+      if (e is DioException) {
+        return {
+          "statusCode": e.response?.statusCode,
+          "data": e.response?.data,
+          "error": e.message,
+        };
+      }
+      return {
+        "statusCode": 500,
+        "error": "An unexpected error occurred",
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> getAll() async {
+    try {
+      final api = config['endpoint'] + '/orders';
+      var response = await dio.get(
+        api,
         options: Options(headers: {'Content-Type': 'application/json'}),
       );
       return {
@@ -91,7 +118,7 @@ class OrderService {
     }
   }
 
-    Future<Map<String, dynamic>> getMeRider() async {
+  Future<Map<String, dynamic>> getMeRider() async {
     try {
       final api = config['endpoint'] + '/orders/me/rider';
       var response = await dio.get(

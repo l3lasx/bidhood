@@ -1,4 +1,5 @@
 // ignore_for_file: unused_local_variable
+import 'package:bidhood/pages/realtime.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:bidhood/pages/finduser.dart';
@@ -35,6 +36,15 @@ final GoRouter router = GoRouter(
       path: '/',
       builder: (BuildContext context, GoRouterState state) {
         return const LoginPage();
+      },
+    ),
+    GoRoute(
+      path: '/realtime',
+      builder: (BuildContext context, GoRouterState state) {
+        final extraData = state.extra as Map<String, dynamic>?; // Added null check
+        return RealTimePage(
+          transactionID: extraData?['transactionID'], // Use null-aware operator
+        );
       },
     ),
     GoRoute(

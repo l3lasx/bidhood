@@ -18,7 +18,7 @@ class ItemDetailsDrawer extends StatefulWidget {
   final LatLng senderLocation;
   final LatLng receiverLocation;
   final String userRole;
-
+  final Function()? onAcceptJob;
   const ItemDetailsDrawer({
     super.key,
     required this.orderId,
@@ -33,6 +33,7 @@ class ItemDetailsDrawer extends StatefulWidget {
     required this.senderLocation,
     required this.receiverLocation,
     required this.userRole,
+    this.onAcceptJob
   });
 
   @override
@@ -242,6 +243,9 @@ class _ItemDetailsDrawerState extends State<ItemDetailsDrawer> {
                   padding: const EdgeInsets.symmetric(vertical: 16.0),
                   child: ElevatedButton(
                     onPressed: () {
+                      if (widget.onAcceptJob != null) {
+                        widget.onAcceptJob!();
+                      }
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('รับงานแล้ว')),
                       );
