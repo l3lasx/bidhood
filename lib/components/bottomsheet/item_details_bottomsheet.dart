@@ -250,9 +250,6 @@ class _ItemDetailsDrawerState extends State<ItemDetailsDrawer> {
                       if (widget.onAcceptJob != null) {
                         widget.onAcceptJob!();
                       }
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('รับงานแล้ว')),
-                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,

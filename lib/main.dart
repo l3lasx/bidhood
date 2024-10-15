@@ -17,7 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:bidhood/pages/homerider.dart';
+// import 'package:bidhood/pages/homerider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,7 +45,7 @@ final GoRouter router = GoRouter(
         final extraData =
             state.extra as Map<String, dynamic>?; // Added null check
         return RealTimePage(
-          transactionID: extraData?['transactionID'], // Use null-aware operator
+          transactionID: extraData?['transactionID'] ?? '', // Use null-aware operator
         );
       },
     ),
@@ -119,12 +119,12 @@ final GoRouter router = GoRouter(
             return const TaskListPage();
           },
         ),
-        GoRoute(
-          path: '/homerider',
-          builder: (BuildContext context, GoRouterState state) {
-            return const HomeRiderPage();
-          },
-        ),
+        // GoRoute(
+        //   path: '/homerider',
+        //   builder: (BuildContext context, GoRouterState state) {
+        //     return const HomeRiderPage();
+        //   },
+        // ),
         GoRoute(
           path: '/profilerider',
           builder: (BuildContext context, GoRouterState state) {
@@ -183,8 +183,7 @@ class ScaffoldWithNavBar extends StatelessWidget {
 }
 
 class ScaffoldWithNavBarRider extends StatelessWidget {
-  const ScaffoldWithNavBarRider({Key? key, required this.child})
-      : super(key: key);
+  const ScaffoldWithNavBarRider({super.key, required this.child});
   final Widget child;
   final Color mainColor = const Color(0xFF0A9830);
 
@@ -218,9 +217,9 @@ class ScaffoldWithNavBarRider extends StatelessWidget {
       case 0:
         GoRouter.of(context).go('/tasklist');
         break;
-      case 1:
-        GoRouter.of(context).go('/homerider');
-        break;
+      // case 1:
+      //   GoRouter.of(context).go('/homerider');
+      //   break;
       case 2:
         GoRouter.of(context).go('/profilerider');
         break;
@@ -249,7 +248,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
         children: [
           if (isRider) ...[
             _buildNavItem(Icons.list_alt, 'Task List', 0),
-            _buildNavItem(Icons.home, 'Home', 1),
+            // _buildNavItem(Icons.home, 'Home', 1),
             _buildNavItem(Icons.person, 'Profile', 2),
           ] else ...[
             _buildNavItem(Icons.local_shipping, 'Parcel', 0),

@@ -21,7 +21,6 @@ class RiderService {
         "data": response.data,
       };
     } catch (e) {
-      debugPrint("$e");
       if (e is DioException) {
         return {
           "statusCode": e.response?.statusCode,
