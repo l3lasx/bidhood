@@ -1,12 +1,15 @@
 import 'package:bidhood/components/cards/itemcardrider.dart';
 import 'package:bidhood/components/layouts/user.dart';
 import 'package:bidhood/services/order.dart';
+import 'package:bidhood/services/rider.dart';
 import 'package:flutter/material.dart';
 import 'package:bidhood/components/bottomsheet/item_details_bottomsheet.dart';
+import 'package:flutter_dropdown_alert/model/data_alert.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bidhood/providers/auth.dart';
+import 'package:flutter_dropdown_alert/alert_controller.dart';
 
 class TaskListPage extends ConsumerStatefulWidget {
   const TaskListPage({super.key});
@@ -66,8 +69,6 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     return result;
   }
 
-  Future<void> _acceptWork() async {}
-
   @override
   void initState() {
     super.initState();
@@ -77,6 +78,44 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   @override
   void dispose() {
     super.dispose();
+  }
+
+  Future<void> riderAcceptWork(dynamic task) async {
+    var checkWork = await ref.read(riderService).checkCurrentWork();
+    if (checkWork["statusCode"] != 200) {
+      if (checkWork['data'] != null) {
+        debugPrint('${checkWork['data']}');
+        debugPrint("ดูเหมือนว่า rider จะรับงานค้างอยู่แล้ว");
+        AlertController.show("เกิดข้อผิดพลาด",
+            "${checkWork['data']['message']}", TypeAlert.warning);
+      }
+      var orders = checkWork['data']['orders'];
+      if (orders.length > 0) {
+        goToRealtime(orders[0]["order_transaction_id"]);
+      }
+      return;
+    }
+    var acceptWork = await ref.read(riderService).acceptWork(task['order_id']);
+    if (acceptWork["statusCode"] != 200) {
+      debugPrint('${acceptWork['data']}');
+      debugPrint("รับงานไม่สำเร็จ");
+      return;
+    }
+    debugPrint('${acceptWork['statusCode']}');
+    debugPrint('${acceptWork['data']}');
+    var work = acceptWork['data'];
+    var transactionID = work['data']['order_transaction_id'];
+    debugPrint(transactionID);
+    if (transactionID != null) {
+      AlertController.show("รับงานสำเร็จ", "${acceptWork['data']['message']}",
+          TypeAlert.success);
+      goToRealtime(transactionID);
+    }
+    return;
+  }
+
+  void goToRealtime(id) {
+    context.go('/realtime', extra: {'transactionID': id});
   }
 
   @override
@@ -167,16 +206,13 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                                         task['receiver']['location']['long'],
                                       ),
                                       userRole: userRole,
-                                      onAcceptJob: () {
+                                      onAcceptJob: () async {
                                         debugPrint('Job accepted: ');
                                         if (task["order_transaction_id"] ==
                                             null) {
                                           return;
                                         }
-                                        context.go('/realtime', extra: {
-                                          'transactionID':
-                                              task["order_transaction_id"]
-                                        });
+                                        await riderAcceptWork(task);
                                       },
                                     );
                                   },

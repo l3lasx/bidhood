@@ -50,6 +50,7 @@ dependencies:
   timeline_tile: ^2.0.0
   firebase_core: ^3.6.0
   cloud_firestore: 5.4.4
+  flutter_dropdown_alert: ^1.0.7
 dev_dependencies:
   flutter_test:
     sdk: flutter

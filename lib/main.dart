@@ -1,6 +1,7 @@
 // ignore_for_file: unused_local_variable
 import 'package:bidhood/pages/realtime.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_dropdown_alert/dropdown_alert.dart';
 import 'firebase_options.dart';
 import 'package:bidhood/pages/finduser.dart';
 import 'package:bidhood/pages/login.dart';
@@ -41,7 +42,8 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/realtime',
       builder: (BuildContext context, GoRouterState state) {
-        final extraData = state.extra as Map<String, dynamic>?; // Added null check
+        final extraData =
+            state.extra as Map<String, dynamic>?; // Added null check
         return RealTimePage(
           transactionID: extraData?['transactionID'], // Use null-aware operator
         );
@@ -330,6 +332,9 @@ class _MyAppState extends ConsumerState<MyApp> {
         colorScheme: ColorScheme.fromSeed(
             seedColor: const Color.fromARGB(255, 87, 183, 58)),
         useMaterial3: true,
+      ),
+      builder: (context, child) => Stack(
+        children: [child!, const DropdownAlert()],
       ),
     );
   }

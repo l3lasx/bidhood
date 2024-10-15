@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -19,22 +20,21 @@ class ItemDetailsDrawer extends StatefulWidget {
   final LatLng receiverLocation;
   final String userRole;
   final Function()? onAcceptJob;
-  const ItemDetailsDrawer({
-    super.key,
-    required this.orderId,
-    required this.sender,
-    required this.receiver,
-    required this.receiverAddress,
-    required this.itemImages,
-    required this.deliveryStatus,
-    required this.rider,
-    required this.deliveryDate,
-    this.completionDate,
-    required this.senderLocation,
-    required this.receiverLocation,
-    required this.userRole,
-    this.onAcceptJob
-  });
+  const ItemDetailsDrawer(
+      {super.key,
+      required this.orderId,
+      required this.sender,
+      required this.receiver,
+      required this.receiverAddress,
+      required this.itemImages,
+      required this.deliveryStatus,
+      required this.rider,
+      required this.deliveryDate,
+      this.completionDate,
+      required this.senderLocation,
+      required this.receiverLocation,
+      required this.userRole,
+      this.onAcceptJob});
 
   @override
   // ignore: library_private_types_in_public_api
@@ -156,11 +156,15 @@ class _ItemDetailsDrawerState extends State<ItemDetailsDrawer> {
                       padding: const EdgeInsets.only(right: 10),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(10),
-                        child: Image.network(
-                          widget.itemImages[index],
+                        child: CachedNetworkImage(
+                          imageUrl: widget.itemImages[index],
                           width: 100,
                           height: 100,
                           fit: BoxFit.cover,
+                          placeholder: (context, url) =>
+                              const CircularProgressIndicator(),
+                          errorWidget: (context, url, error) =>
+                              const Icon(Icons.error),
                         ),
                       ),
                     );
