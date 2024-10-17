@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:timeline_tile/timeline_tile.dart';
 
@@ -30,7 +31,7 @@ class ItemCardRider extends StatelessWidget {
           children: [
             Text(
               'Order ID: $orderId',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
             const SizedBox(height: 12),
             Row(
@@ -57,7 +58,8 @@ class ItemCardRider extends StatelessWidget {
                           color: Colors.grey,
                           thickness: 2,
                         ),
-                        endChild: _buildTimelineContent('จุดรับสินค้า', pickupAddress),
+                        endChild: _buildTimelineContent(
+                            'จุดรับสินค้า', pickupAddress),
                       ),
                       TimelineTile(
                         alignment: TimelineAlign.start,
@@ -71,7 +73,8 @@ class ItemCardRider extends StatelessWidget {
                           color: Colors.grey,
                           thickness: 2,
                         ),
-                        endChild: _buildTimelineContent('จุดส่งสินค้า', deliveryAddress),
+                        endChild: _buildTimelineContent(
+                            'จุดส่งสินค้า', deliveryAddress),
                       ),
                     ],
                   ),
@@ -84,13 +87,17 @@ class ItemCardRider extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          pickupImage,
-                          height: 100,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
+                          borderRadius: BorderRadius.circular(8),
+                          child: CachedNetworkImage(
+                            imageUrl: pickupImage,
+                            width: 100,
+                            height: 100,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) =>
+                                const CircularProgressIndicator(),
+                            errorWidget: (context, url, error) =>
+                                const Icon(Icons.error),
+                          )),
                       const SizedBox(height: 8),
                       ElevatedButton(
                         onPressed: onViewDetails,

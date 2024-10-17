@@ -120,7 +120,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  void _navigateBasedOnRole(WidgetRef ref, String role) {
+  void _navigateBasedOnRole(WidgetRef ref, String role) async {
     if (role == 'User') {
       ref.watch(goRouterProvider).go('/parcel');
     } else if (role == 'Rider') {
