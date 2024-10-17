@@ -19,15 +19,15 @@ class TaskListPage extends ConsumerStatefulWidget {
 
 class _TaskListPageState extends ConsumerState<TaskListPage> {
   int totals = 0;
-  // ignore: avoid_init_to_null
   late dynamic orderList = null;
+
   Future<Map<String, dynamic>> _fetchOrderData() async {
     var result = await ref.read(orderService).getAll();
     final orders = (result['data']?['data'] as List)
         .where((order) => order['status'] == 1)
         .toList();
     setState(() {
-      totals = orders.length | 0;
+      totals = orders.length;
     });
     return result;
   }
@@ -38,14 +38,9 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     super.initState();
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
   Future<void> checkStatusAndLoadData() async {
     try {
-      redirectToAlreadyWork();
+      await redirectToAlreadyWork();
       setState(() {
         orderList = _fetchOrderData();
       });
@@ -99,7 +94,6 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
           TypeAlert.success);
       goToRealtime(transactionID);
     }
-    return;
   }
 
   void goToRealtime(id) {
@@ -110,140 +104,110 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   Widget build(BuildContext context) {
     final userRole = ref.watch(authProvider).userData['role'];
     return UserLayout(
-      bodyWidget: Positioned(
-        top: 50,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        child: SafeArea(
-          child: SizedBox(
-            width: double.infinity,
-            height: MediaQuery.of(context).size.height * 0.7,
-            child: Column(
-              children: [
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      ElevatedButton(
-                        onPressed: () {},
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                        ),
-                        child: Text(
-                          'รายการงานทั้งหมด ($totals)',
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 14),
-                        ),
-                      ),
-                    ],
+      bodyWidget: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 50, left: 16, right: 16, bottom: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {},
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                    ),
+                    child: Text(
+                      'รายการงานทั้งหมด ($totals)',
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                    ),
                   ),
-                ),
-                Expanded(
-                  child: orderList == null
-                      ? const Center(child: CircularProgressIndicator())
-                      : FutureBuilder<dynamic>(
-                          future: orderList,
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return const Center(
-                                  child: CircularProgressIndicator());
-                            } else if (snapshot.hasData) {
-                              final orderListData =
-                                  (snapshot.data?['data']?['data'] as List)
-                                      .where((order) => order['status'] == 1)
-                                      .toList();
-                              if (orderListData.isEmpty) {
-                                return _buildEmptyState();
-                              }
-                              return ListView.builder(
-                                itemCount: orderListData.length,
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 8),
-                                itemBuilder: (context, index) {
-                                  final task = orderListData[index];
-                                  return ItemCardRider(
-                                    orderId: task['order_id'],
-                                    pickupAddress: task['user']['address'],
-                                    deliveryAddress: task['receiver']
-                                        ['address'],
-                                    pickupImage: task['events'][0]
-                                        ['event_picture'],
-                                    onViewDetails: () {
-                                      showBottomSheet(
-                                        context: context,
-                                        backgroundColor: Colors.transparent,
-                                        builder: (BuildContext context) {
-                                          return ItemDetailsDrawer(
-                                            orderId: task['order_id'],
-                                            sender: task['user']['fullname'],
-                                            receiver: task['receiver']
-                                                ['fullname'],
-                                            receiverAddress: task['receiver']
-                                                ['address'],
-                                            itemImages: (task['product_list']
-                                                .map<String>((item) {
-                                              return item['image'].toString();
-                                            })).toList(),
-                                            deliveryStatus:
-                                                task['status'].toString(),
-                                            rider: 'You',
-                                            deliveryDate: DateTime.now(),
-                                            completionDate: null,
-                                            senderLocation: LatLng(
-                                              task['user']['location']['lat'],
-                                              task['user']['location']['long'],
-                                            ),
-                                            receiverLocation: LatLng(
-                                              task['receiver']['location']
-                                                  ['lat'],
-                                              task['receiver']['location']
-                                                  ['long'],
-                                            ),
-                                            userRole: userRole,
-                                            onAcceptJob: () async {
-                                              debugPrint('Job accepted: ');
-                                              if (task[
-                                                      "order_transaction_id"] ==
-                                                  null) {
-                                                return;
-                                              }
-                                              await riderAcceptWork(task);
-                                            },
-                                          );
-                                        },
-                                      );
-                                    },
-                                  );
-                                },
-                              );
-                            } else {
-                              return _buildEmptyState();
-                            }
-                          },
-                        ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+            Expanded(
+              child: FutureBuilder<dynamic>(
+                future: orderList,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasData) {
+                    final orderListData = (snapshot.data?['data']?['data'] as List?)
+                        ?.where((order) => order['status'] == 1)
+                        .toList() ?? [];
+                    if (orderListData.isEmpty) {
+                      return _buildEmptyState();
+                    }
+                    return ListView.builder(
+                      itemCount: orderListData.length,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      itemBuilder: (context, index) {
+                        final task = orderListData[index];
+                        return ItemCardRider(
+                          orderId: task['order_id'],
+                          pickupAddress: task['user']['address'],
+                          deliveryAddress: task['receiver']['address'],
+                          pickupImage: task['events'][0]['event_picture'],
+                          onViewDetails: () {
+                            showBottomSheet(
+                              context: context,
+                              backgroundColor: Colors.transparent,
+                              builder: (BuildContext context) {
+                                return ItemDetailsDrawer(
+                                  orderId: task['order_id'],
+                                  sender: task['user']['fullname'],
+                                  receiver: task['receiver']['fullname'],
+                                  receiverAddress: task['receiver']['address'],
+                                  itemImages: (task['product_list'] as List<dynamic>)
+                                      .map<String>((item) => item['image'].toString())
+                                      .toList(),
+                                  deliveryStatus: task['status'].toString(),
+                                  rider: 'You',
+                                  deliveryDate: DateTime.now(),
+                                  completionDate: null,
+                                  senderLocation: LatLng(
+                                    task['user']['location']['lat'],
+                                    task['user']['location']['long'],
+                                  ),
+                                  receiverLocation: LatLng(
+                                    task['receiver']['location']['lat'],
+                                    task['receiver']['location']['long'],
+                                  ),
+                                  userRole: userRole,
+                                  onAcceptJob: () async {
+                                    debugPrint('Job accepted: ');
+                                    if (task["order_transaction_id"] == null) {
+                                      return;
+                                    }
+                                    await riderAcceptWork(task);
+                                  },
+                                );
+                              },
+                            );
+                          },
+                        );
+                      },
+                    );
+                  } else {
+                    return _buildEmptyState();
+                  }
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildEmptyState() {
-    return const Expanded(
-      child: Center(
-        child: Text(
-          'ขออภัยไม่มีรายการของคุณ',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.grey,
-          ),
+    return const Center(
+      child: Text(
+        'ขออภัยไม่มีรายการของคุณ',
+        style: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: Colors.grey,
         ),
       ),
     );
