@@ -60,8 +60,6 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
       if (checkWork['data'] != null) {
         debugPrint('${checkWork['data']}');
         debugPrint("กำลังพาไปยังงานล่าสุดของคุณ!");
-        AlertController.show(
-            "แจ้งเตือน", "กำลังพาไปยังงานล่าสุดของคุณ!", TypeAlert.success);
       }
       var orders = checkWork['data']['orders'];
       if (orders.length > 0) {
