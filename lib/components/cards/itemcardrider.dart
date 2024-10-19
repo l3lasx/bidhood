@@ -1,3 +1,5 @@
+// ignore_for_file: non_constant_identifier_names
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:timeline_tile/timeline_tile.dart';
@@ -7,16 +9,18 @@ class ItemCardRider extends StatelessWidget {
   final String pickupAddress;
   final String deliveryAddress;
   final String pickupImage;
+  final double rider_goto_sender_distance;
   final VoidCallback onViewDetails;
 
   const ItemCardRider({
-    Key? key,
+    super.key,
     required this.orderId,
     required this.pickupAddress,
     required this.deliveryAddress,
+    required this.rider_goto_sender_distance,
     required this.pickupImage,
     required this.onViewDetails,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -76,6 +80,16 @@ class ItemCardRider extends StatelessWidget {
                         endChild: _buildTimelineContent(
                             'จุดส่งสินค้า', deliveryAddress),
                       ),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text("ระยะทางไปหาผู้รับ",
+                              style: TextStyle(fontSize: 14)),
+                          Text("$rider_goto_sender_distance km",
+                              style: const TextStyle(fontSize: 12))
+                        ],
+                      )
                     ],
                   ),
                 ),
