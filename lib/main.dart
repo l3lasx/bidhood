@@ -46,6 +46,7 @@ final GoRouter router = GoRouter(
             state.extra as Map<String, dynamic>?; // Added null check
         return RealTimePage(
           transactionID: extraData?['transactionID'] ?? '', // Use null-aware operator
+          orderID: extraData?['orderID'],
         );
       },
     ),
