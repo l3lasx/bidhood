@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_init_to_null
+
 import 'package:bidhood/components/cards/itemcardrider.dart';
 import 'package:bidhood/components/layouts/user.dart';
 import 'package:bidhood/services/order.dart';
@@ -22,7 +24,10 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   late dynamic orderList = null;
 
   Future<Map<String, dynamic>> _fetchOrderData() async {
-    var result = await ref.read(orderService).getAll();
+    var user = ref.watch(authProvider).userData;
+    var result = await ref
+        .read(orderService)
+        .getAllByLocation(user['location']['lat'], user['location']['long']);
     final orders = (result['data']?['data'] as List)
         .where((order) => order['status'] == 1)
         .toList();
@@ -58,7 +63,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
       }
       var orders = checkWork['data']['orders'];
       if (orders.length > 0) {
-        goToRealtime(orders[0]["order_transaction_id"]);
+        goToRealtime(orders[0]["order_transaction_id"],orders[0]['order_id']);
       }
     }
   }
@@ -74,7 +79,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
       }
       var orders = checkWork['data']['orders'];
       if (orders.length > 0) {
-        goToRealtime(orders[0]["order_transaction_id"]);
+        goToRealtime(orders[0]["order_transaction_id"],task['order_id']);
       }
       return;
     }
@@ -92,12 +97,12 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     if (transactionID != null) {
       AlertController.show("รับงานสำเร็จ", "${acceptWork['data']['message']}",
           TypeAlert.success);
-      goToRealtime(transactionID);
+      goToRealtime(transactionID, task['order_id']);
     }
   }
 
-  void goToRealtime(id) {
-    context.go('/realtime', extra: {'transactionID': id});
+  void goToRealtime(id, orderId) {
+    context.go('/realtime', extra: {'transactionID': id, 'orderID': orderId});
   }
 
   @override
@@ -108,7 +113,8 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.only(top: 50, left: 16, right: 16, bottom: 8),
+              padding: const EdgeInsets.only(
+                  top: 50, left: 16, right: 16, bottom: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -132,19 +138,24 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   } else if (snapshot.hasData) {
-                    final orderListData = (snapshot.data?['data']?['data'] as List?)
-                        ?.where((order) => order['status'] == 1)
-                        .toList() ?? [];
+                    final orderListData =
+                        (snapshot.data?['data']?['data'] as List?)
+                                ?.where((order) => order['status'] == 1)
+                                .toList() ??
+                            [];
                     if (orderListData.isEmpty) {
                       return _buildEmptyState();
                     }
                     return ListView.builder(
                       itemCount: orderListData.length,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
                       itemBuilder: (context, index) {
                         final task = orderListData[index];
                         return ItemCardRider(
                           orderId: task['order_id'],
+                          rider_goto_sender_distance:
+                              task['rider_goto_sender_distance'],
                           pickupAddress: task['user']['address'],
                           deliveryAddress: task['receiver']['address'],
                           pickupImage: task['events'][0]['event_picture'],
@@ -158,21 +169,27 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                                   sender: task['user']['fullname'],
                                   receiver: task['receiver']['fullname'],
                                   receiverAddress: task['receiver']['address'],
-                                  itemImages: (task['product_list'] as List<dynamic>)
-                                      .map<String>((item) => item['image'].toString())
+                                  itemImages: (task['product_list']
+                                          as List<dynamic>)
+                                      .map<String>(
+                                          (item) => item['image'].toString())
                                       .toList(),
                                   deliveryStatus: task['status'].toString(),
                                   rider: 'You',
                                   deliveryDate: DateTime.now(),
                                   completionDate: null,
-                                  senderLocation: LatLng(
-                                    task['user']['location']['lat'],
-                                    task['user']['location']['long'],
-                                  ),
                                   receiverLocation: LatLng(
                                     task['receiver']['location']['lat'],
                                     task['receiver']['location']['long'],
                                   ),
+                                  senderLocation: LatLng(
+                                    task['user']['location']['lat'],
+                                    task['user']['location']['long'],
+                                  ),
+                                  // riderLocation: LatLng(
+                                  //   task['rider']['location']['lat'],
+                                  //   task['rider']['location']['long'],
+                                  // ),
                                   userRole: userRole,
                                   onAcceptJob: () async {
                                     debugPrint('Job accepted: ');

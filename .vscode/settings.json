@@ -3,6 +3,8 @@
         "latlong",
         "Polyline",
         "polylines",
+        "Firestore",
+        "fullname",
         "prefs"
     ]
 }

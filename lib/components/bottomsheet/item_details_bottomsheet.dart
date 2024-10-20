@@ -19,6 +19,7 @@ class ItemDetailsDrawer extends StatefulWidget {
   final LatLng senderLocation;
   final LatLng receiverLocation;
   final String userRole;
+  // final LatLng riderLocation;
   final Function()? onAcceptJob;
   const ItemDetailsDrawer(
       {super.key,
@@ -33,6 +34,7 @@ class ItemDetailsDrawer extends StatefulWidget {
       this.completionDate,
       required this.senderLocation,
       required this.receiverLocation,
+      // required this.riderLocation,
       required this.userRole,
       this.onAcceptJob});
 
@@ -69,7 +71,7 @@ class _ItemDetailsDrawerState extends State<ItemDetailsDrawer> {
         _routePoints = coordinates
             .map((coord) => LatLng(coord[1] as double, coord[0] as double))
             .toList();
-        _distance = distance / 1000; // Convert meters to kilometers
+        _distance = distance / 1000;
         _isLoading = false;
       });
     } else {
