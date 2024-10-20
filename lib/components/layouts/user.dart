@@ -7,7 +7,9 @@ import 'package:go_router/go_router.dart';
 class UserLayout extends ConsumerWidget {
   final Widget bodyWidget;
   final Color mainColor = const Color(0xFF0A9830);
-  const UserLayout({super.key, required this.bodyWidget});
+  final bool showBackButton;
+  const UserLayout(
+      {super.key, required this.bodyWidget, this.showBackButton = true});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -27,11 +29,10 @@ class UserLayout extends ConsumerWidget {
 
     final userData = authState.userData!;
     final bool isRider = userData['role'] == 'Rider';
-
     return Scaffold(
       appBar: AppBar(
         backgroundColor: mainColor,
-        leading: context.canPop()
+        leading: context.canPop() && showBackButton
             ? IconButton(
                 icon: const Icon(Icons.arrow_back, color: Colors.white),
                 onPressed: () => {

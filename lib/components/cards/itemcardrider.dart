@@ -84,7 +84,7 @@ class ItemCardRider extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.start,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text("ระยะทางไปหาผู้รับ",
+                          const Text("ระยะทางไปหาผู้ส่ง",
                               style: TextStyle(fontSize: 14)),
                           Text("$rider_goto_sender_distance km",
                               style: const TextStyle(fontSize: 12))

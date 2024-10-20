@@ -63,7 +63,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
       }
       var orders = checkWork['data']['orders'];
       if (orders.length > 0) {
-        goToRealtime(orders[0]["order_transaction_id"],orders[0]['order_id']);
+        goToRealtime(orders[0]["order_transaction_id"], orders[0]['order_id']);
       }
     }
   }
@@ -79,7 +79,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
       }
       var orders = checkWork['data']['orders'];
       if (orders.length > 0) {
-        goToRealtime(orders[0]["order_transaction_id"],task['order_id']);
+        goToRealtime(orders[0]["order_transaction_id"], task['order_id']);
       }
       return;
     }
@@ -109,6 +109,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   Widget build(BuildContext context) {
     final userRole = ref.watch(authProvider).userData['role'];
     return UserLayout(
+      showBackButton: false,
       bodyWidget: SafeArea(
         child: Column(
           children: [
@@ -116,16 +117,19 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
               padding: const EdgeInsets.only(
                   top: 50, left: 16, right: 16, bottom: 8),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                    ),
-                    child: Text(
-                      'รายการงานทั้งหมด ($totals)',
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {},
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                      ),
+                      child: Text(
+                        'รายการงานทั้งหมด ($totals)',
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 14),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ),
                 ],
@@ -160,43 +164,49 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                           deliveryAddress: task['receiver']['address'],
                           pickupImage: task['events'][0]['event_picture'],
                           onViewDetails: () {
-                            showBottomSheet(
+                            showModalBottomSheet(
                               context: context,
+                              isScrollControlled: true,
                               backgroundColor: Colors.transparent,
                               builder: (BuildContext context) {
-                                return ItemDetailsDrawer(
-                                  orderId: task['order_id'],
-                                  sender: task['user']['fullname'],
-                                  receiver: task['receiver']['fullname'],
-                                  receiverAddress: task['receiver']['address'],
-                                  itemImages: (task['product_list']
-                                          as List<dynamic>)
-                                      .map<String>(
-                                          (item) => item['image'].toString())
-                                      .toList(),
-                                  deliveryStatus: task['status'].toString(),
-                                  rider: 'You',
-                                  deliveryDate: DateTime.now(),
-                                  completionDate: null,
-                                  receiverLocation: LatLng(
-                                    task['receiver']['location']['lat'],
-                                    task['receiver']['location']['long'],
-                                  ),
-                                  senderLocation: LatLng(
-                                    task['user']['location']['lat'],
-                                    task['user']['location']['long'],
-                                  ),
-                                  // riderLocation: LatLng(
-                                  //   task['rider']['location']['lat'],
-                                  //   task['rider']['location']['long'],
-                                  // ),
-                                  userRole: userRole,
-                                  onAcceptJob: () async {
-                                    debugPrint('Job accepted: ');
-                                    if (task["order_transaction_id"] == null) {
-                                      return;
-                                    }
-                                    await riderAcceptWork(task);
+                                return DraggableScrollableSheet(
+                                  initialChildSize: 0.9,
+                                  minChildSize: 0.5,
+                                  maxChildSize: 0.9,
+                                  builder: (_, controller) {
+                                    return ItemDetailsDrawer(
+                                      orderId: task['order_id'],
+                                      sender: task['user']['fullname'],
+                                      receiver: task['receiver']['fullname'],
+                                      receiverAddress: task['receiver']
+                                          ['address'],
+                                      itemImages: (task['product_list']
+                                              as List<dynamic>)
+                                          .map<String>((item) =>
+                                              item['image'].toString())
+                                          .toList(),
+                                      deliveryStatus: task['status'].toString(),
+                                      rider: 'You',
+                                      deliveryDate: DateTime.now(),
+                                      completionDate: null,
+                                      receiverLocation: LatLng(
+                                        task['receiver']['location']['lat'],
+                                        task['receiver']['location']['long'],
+                                      ),
+                                      senderLocation: LatLng(
+                                        task['user']['location']['lat'],
+                                        task['user']['location']['long'],
+                                      ),
+                                      userRole: userRole,
+                                      onAcceptJob: () async {
+                                        debugPrint('Job accepted: ');
+                                        if (task["order_transaction_id"] ==
+                                            null) {
+                                          return;
+                                        }
+                                        await riderAcceptWork(task);
+                                      },
+                                    );
                                   },
                                 );
                               },

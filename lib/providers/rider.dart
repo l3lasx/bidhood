@@ -2,13 +2,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 
+import 'package:latlong2/latlong.dart';
+
 class RiderState {
   final Map<String, dynamic>? data;
-  
-  RiderState({this.data});
+  final Map<String, dynamic>? routePoints;
+  final Map<String, dynamic>? currentWork;
 
-  RiderState copyWith({Map<String, dynamic>? data}) {
-    return RiderState(data: data ?? this.data);
+  RiderState({this.data, this.routePoints, this.currentWork});
+
+  RiderState copyWith(
+      {Map<String, dynamic>? data,
+      Map<String, dynamic>? routePoints,
+      Map<String, dynamic>? currentWork}) {
+    return RiderState(
+        data: data ?? this.data,
+        routePoints: routePoints ?? this.routePoints,
+        currentWork: this.currentWork);
   }
 }
 
@@ -23,6 +33,14 @@ class RiderNotifier extends StateNotifier<RiderState> {
 
   void update(Map<String, dynamic>? data) {
     state = state.copyWith(data: data);
+  }
+
+  void updateRoutePoints(Map<String, dynamic>? data) async {
+    state = state.copyWith(routePoints: data);
+  }
+
+  void updateCurrentWork(Map<String, dynamic>? data) {
+    state = state.copyWith(currentWork: data);
   }
 
   Future<void> cancel() async {

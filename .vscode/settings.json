@@ -1,10 +1,11 @@
 {
     "cSpell.words": [
+        "Firestore",
+        "fullname",
+        "Geolocator",
         "latlong",
         "Polyline",
         "polylines",
-        "Firestore",
-        "fullname",
         "prefs"
     ]
 }

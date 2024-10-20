@@ -1,10 +1,15 @@
 // ignore_for_file: invalid_use_of_visible_for_testing_member
 
+import 'dart:async';
+
 import 'package:bidhood/components/layouts/user.dart';
 import 'package:bidhood/components/maproute/mapbox.dart';
 import 'package:bidhood/providers/rider.dart';
+import 'package:bidhood/services/order.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geolocator_android/geolocator_android.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
@@ -21,7 +26,9 @@ import 'dart:io';
 
 class RealTimePage extends ConsumerStatefulWidget {
   final String transactionID;
-  const RealTimePage({super.key, required this.transactionID});
+  final String orderID;
+  const RealTimePage(
+      {super.key, required this.transactionID, required this.orderID});
 
   @override
   ConsumerState<RealTimePage> createState() => _RealTimePageState();
@@ -30,22 +37,10 @@ class RealTimePage extends ConsumerStatefulWidget {
 class _RealTimePageState extends ConsumerState<RealTimePage> {
   final FirebaseFirestore db = FirebaseFirestore.instance;
   bool _disposed = false;
-
-  late Map<String, dynamic> currentTask;
-
-  List<LatLng> _routePoints = [];
-  double _distance = 0.0;
-  bool _isLoading = true;
-  int _currentStep = 0;
-
-  final List<String> _steps = [
-    'รับงาน',
-    'เข้ารับพัสดุ',
-    'รับสินค้าแล้วกำลังเดินทาง',
-    'นำส่งสินค้าแล้ว'
-  ];
-  String? _receivePhoto;
-  String? _deliveryPhoto;
+  Map<String, dynamic> routesMap = {};
+  Map<String, dynamic> orderDetail = {};
+  bool isLoading = true;
+  Timer? _locationUpdateTimer;
 
   @override
   void initState() {
@@ -53,9 +48,10 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         startRealtimeGet();
+        setupOrder();
+        startLocationUpdates();
       }
     });
-    // _fetchMockData();
   }
 
   void startRealtimeGet() {
@@ -80,6 +76,32 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
     }
   }
 
+  void startLocationUpdates() {
+    _locationUpdateTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      updateRiderLocation();
+    });
+  }
+
+  Future<void> updateRiderLocation() async {
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      await db.collection("transactions").doc(widget.transactionID).update({
+        'rider_location': {
+          'Lat': position.latitude,
+          'Long': position.longitude,
+        },
+      });
+
+      debugPrint(
+          "Rider location updated: ${position.latitude}, ${position.longitude}");
+    } catch (e) {
+      debugPrint("Error updating rider location: $e");
+    }
+  }
+
   void stopRealTime() {
     if (_disposed) return;
     if (mounted) {
@@ -92,44 +114,78 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
   void dispose() {
     _disposed = true;
     stopRealTime();
+    _locationUpdateTimer?.cancel();
     super.dispose();
   }
 
-  // Center(
-  //   child: data == null
-  //       ? const CircularProgressIndicator()
-  //       : Column(
-  //           mainAxisAlignment: MainAxisAlignment.center,
-  //           children: [
-  //             Text('OrderID: ${data['order_id'] ?? 'N/A'}'),
-  //             Text(
-  //                 'Receiver Lat: ${data['receiver_location']?['Lat'] ?? 'N/A'}'),
-  //             Text(
-  //                 'Receiver Long: ${data['receiver_location']?['Long'] ?? 'N/A'}'),
-  //             Text(
-  //                 'Rider Lat: ${data['rider_location']?['Lat'] ?? 'N/A'}'),
-  //             Text(
-  //                 'Rider Long: ${data['rider_location']?['Long'] ?? 'N/A'}'),
-  //             Text(
-  //                 'RiderStart Lat: ${data['rider_start_location']?['Lat'] ?? 'N/A'}'),
-  //             Text(
-  //                 'RiderStart Long: ${data['rider_start_location']?['Long'] ?? 'N/A'}'),
-  //             Text(
-  //                 'Sender Lat: ${data['sender_location']?['Lat'] ?? 'N/A'}'),
-  //             Text(
-  //                 'Sender Long: ${data['sender_location']?['Long'] ?? 'N/A'}'),
-  //             const SizedBox(height: 20),
-  //             FilledButton(
-  //               onPressed: () => context.go('/tasklist'),
-  //               child: const Text("Back"),
-  //             ),
-  //           ],
-  //         ),
-  // ),
+  Future<void> setupOrder() async {
+    var response = await fetchOrderDetails();
+    if (response['statusCode'] == 200) {
+      setState(() {
+        orderDetail = response['data']['data'];
+      });
+      await calculateRoutes();
+    } else {
+      debugPrint("Failed to fetch order details");
+    }
+  }
+
+  Future<Map<String, dynamic>> fetchOrderDetails() async {
+    return await ref.read(orderService).getOrderByID(widget.orderID);
+  }
+
+  Future<void> calculateRoutes() async {
+    var riderLocation = orderDetail['rider']?['location'];
+    var senderLocation = orderDetail['user']?['location'];
+    var receiverLocation = orderDetail['receiver']?['location'];
+
+    if (riderLocation != null &&
+        senderLocation != null &&
+        receiverLocation != null) {
+      var riderToSender = await findDistance(riderLocation['lat'],
+          riderLocation['long'], senderLocation['lat'], senderLocation['long']);
+      var riderToReceiver = await findDistance(
+          senderLocation['lat'],
+          senderLocation['long'],
+          receiverLocation['lat'],
+          receiverLocation['long']);
+
+      setState(() {
+        routesMap['rider_to_sender'] = riderToSender;
+        routesMap['rider_to_receiver'] = riderToReceiver;
+      });
+
+      ref.read(riderProvider.notifier).updateRoutePoints(routesMap);
+      debugPrint("Routes calculated: $routesMap");
+    }
+  }
+
+  Future<Map<String, dynamic>> findDistance(
+      double startLat, double startLong, double endLat, double endLong) async {
+    final response = await http.get(Uri.parse(
+        'http://router.project-osrm.org/route/v1/driving/$startLong,$startLat;$endLong,$endLat?overview=full&geometries=geojson'));
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final coordinates = data['routes'][0]['geometry']['coordinates'] as List;
+      final distance = data['routes'][0]['distance'] as num;
+      return {
+        "isError": false,
+        "distance": (distance / 1000),
+        "routePoints": coordinates
+            .map((coord) => LatLng(coord[1] as double, coord[0] as double))
+            .toList()
+      };
+    }
+    return {"isError": true, "routePoints": [], "distance": -1};
+  }
+
   @override
   Widget build(BuildContext context) {
     var data = ref.watch(riderProvider).data;
-    return const UserLayout(
+    var pointers = ref.watch(riderProvider).routePoints;
+
+    return UserLayout(
         bodyWidget: Positioned(
       top: 50,
       left: 0,
@@ -138,11 +194,68 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [MapBox()],
+          children: [
+            if (data != null)
+              buildMapBox(data, pointers)
+            else
+              const Center(child: CircularProgressIndicator()),
+          ],
         ),
       ),
     ));
   }
+
+  Widget buildMapBox(
+      Map<String, dynamic> data, Map<String, dynamic>? pointers) {
+    int status = int.tryParse(orderDetail['status']?.toString() ?? '') ?? 0;
+
+    return MapBox(
+      mapType: "rider",
+      focusMapCenter: getLatLng(data['rider_location']),
+      riderLocation: getLatLng(data['rider_location']),
+      senderLocation: getLatLng(data['sender_location']),
+      receiverLocation: getLatLng(data['receiver_location']),
+      noteHint: getNoteHint(status),
+      routePoints: getRoutePoints(status, pointers),
+      distance: getDistance(status, pointers),
+      orderStatus: status,
+    );
+  }
+
+  LatLng getLatLng(Map<String, dynamic>? location) {
+    return LatLng(location?['Lat'] ?? 0.0, location?['Long'] ?? 0.0);
+  }
+
+  String getNoteHint(int status) {
+    if (status == 2) return "ระยะทางจากไรเดอร์ไปหาผู้ส่ง";
+    if (status > 2) return "ระยะทางจากผู้ส่งไปหาผู้รับ";
+    return "รอรับออเดอร์";
+  }
+
+  List<LatLng> getRoutePoints(int status, Map<String, dynamic>? pointers) {
+    if (status == 2) return pointers?['rider_to_sender']?['routePoints'] ?? [];
+    if (status > 2) return pointers?['rider_to_receiver']?['routePoints'] ?? [];
+    return const [];
+  }
+
+  double getDistance(int status, Map<String, dynamic>? pointers) {
+    if (status == 2) {
+      return double.tryParse(
+              pointers?['rider_to_sender']?['distance']?.toString() ?? '') ??
+          0.0;
+    }
+    if (status > 2) {
+      return double.tryParse(
+              pointers?['rider_to_receiver']?['distance']?.toString() ?? '') ??
+          0.0;
+    }
+    return 0.0;
+  }
+}
+
+
+
+
 
   // void _fetchMockData() {
   //   // Mock data
@@ -654,4 +767,3 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
   //     return 'อัพเดทสถานะ';
   //   }
   // }
-}
