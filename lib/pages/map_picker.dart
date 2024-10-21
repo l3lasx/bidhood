@@ -6,8 +6,9 @@ import 'dart:async';
 
 class MapPicker extends StatefulWidget {
   final Position? initialPosition;
+  final String? initialAddress;
 
-  const MapPicker({Key? key, this.initialPosition}) : super(key: key);
+  const MapPicker({Key? key, this.initialPosition, this.initialAddress}) : super(key: key);
 
   @override
   State<MapPicker> createState() => _MapPickerState();
@@ -26,6 +27,9 @@ class _MapPickerState extends State<MapPicker> {
         widget.initialPosition!.latitude,
         widget.initialPosition!.longitude,
       );
+    }
+    if (widget.initialAddress != null) {
+      _addressController.text = widget.initialAddress!;
     }
   }
 
