@@ -22,19 +22,24 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   bool _isPasswordVisible = false;
 
   final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _fullNameController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _licensePlateController = TextEditingController();
+  final TextEditingController _latitudeController = TextEditingController();
+  final TextEditingController _longitudeController = TextEditingController();
 
   Position? _currentPosition;
 
   void _openMap() async {
     final result = await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => MapPicker(initialPosition: _currentPosition),
+        builder: (context) => MapPicker(
+          initialPosition: _currentPosition,
+          initialAddress: _addressController.text,
+        ),
       ),
     );
 
@@ -53,18 +58,29 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           speedAccuracy: 0,
         );
         _addressController.text = result['address'];
+        _latitudeController.text = _currentPosition!.latitude.toString();
+        _longitudeController.text = _currentPosition!.longitude.toString();
       });
     }
+  }
+
+  String? _validateField(String? value, String fieldName) {
+    if (value == null || value.trim().isEmpty) {
+      return 'กรุณากรอก$fieldName';
+    }
+    return null;
   }
 
   @override
   void dispose() {
     _phoneController.dispose();
-    _fullNameController.dispose();
+    _usernameController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _addressController.dispose();
     _licensePlateController.dispose();
+    _latitudeController.dispose();
+    _longitudeController.dispose();
     super.dispose();
   }
 
@@ -182,7 +198,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                   ),
                                 ),
                                 const Text(
-                                  'ข่อมูลของคุณจะถูกเก็บเป็นความลับ ?',
+                                  'ข่อมูลของคุณจะถูกเก็บเป็นความลับ',
                                   style: TextStyle(
                                     fontSize: 16,
                                   ),
@@ -242,15 +258,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                                 ),
                                               ),
                                           ],
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          [
-                                            'ประเภท',
-                                            'กรอกข้อมูล',
-                                            'เสร็จสิ้น'
-                                          ][index],
-                                          style: const TextStyle(fontSize: 12),
                                         ),
                                       ],
                                     ),
@@ -331,10 +338,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                         LengthLimitingTextInputFormatter(10),
                                       ],
                                       validator: (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return 'กรุณากรอกเบอร์โทร';
-                                        }
-                                        if (value.length != 10) {
+                                        String? baseValidation = _validateField(value, 'เบอร์โทร');
+                                        if (baseValidation != null) return baseValidation;
+                                        if (value!.length != 10) {
                                           return 'เบอร์โทรต้องมี 10 หลัก';
                                         }
                                         return null;
@@ -342,9 +348,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                     ),
                                     const SizedBox(height: 16),
                                     TextFormField(
-                                      controller: _fullNameController,
+                                      controller: _usernameController,
                                       decoration: InputDecoration(
-                                        labelText: 'ชื่อ-นามสกุล',
+                                        labelText: 'ชื่อผู้ใช้',
                                         border: const OutlineInputBorder(),
                                         enabledBorder: const OutlineInputBorder(
                                           borderSide:
@@ -357,12 +363,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                         floatingLabelStyle:
                                             TextStyle(color: mainColor),
                                       ),
-                                      validator: (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return 'กรุณากรอกชื่อ-นามสกุล';
-                                        }
-                                        return null;
-                                      },
+                                      validator: (value) => _validateField(value, 'ชื่อผู้ใช้'),
                                     ),
                                     const SizedBox(height: 16),
                                     TextFormField(
@@ -399,10 +400,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                       ),
                                       obscureText: !_isPasswordVisible,
                                       validator: (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return 'กรุณากรอกรหัสผ่าน';
-                                        }
-                                        if (value.length < 6) {
+                                        String? baseValidation = _validateField(value, 'รหัสผ่าน');
+                                        if (baseValidation != null) return baseValidation;
+                                        if (value!.trim().length < 6) {
                                           return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
                                         }
                                         return null;
@@ -446,10 +446,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                       ),
                                       obscureText: !_isPasswordVisible,
                                       validator: (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return 'กรุณายืนยันรหัสผ่าน';
-                                        }
-                                        if (value != _passwordController.text) {
+                                        String? baseValidation = _validateField(value, 'ยืนยันรหัสผ่าน');
+                                        if (baseValidation != null) return baseValidation;
+                                        if (value!.trim() != _passwordController.text.trim()) {
                                           return 'รหัสผ่านไม่ตรงกัน';
                                         }
                                         return null;
@@ -459,103 +458,129 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                       },
                                     ),
                                     const SizedBox(height: 16),
-                                    TextFormField(
-                                      controller: _addressController,
-                                      decoration: InputDecoration(
-                                        labelText: 'ที่อยู่',
-                                        border: const OutlineInputBorder(),
-                                        enabledBorder: const OutlineInputBorder(
-                                          borderSide:
-                                              BorderSide(color: Colors.grey),
-                                        ),
-                                        focusedBorder: OutlineInputBorder(
-                                          borderSide: BorderSide(
-                                              color: mainColor, width: 2.0),
-                                        ),
-                                        floatingLabelStyle:
-                                            TextStyle(color: mainColor),
-                                      ),
-                                      validator: (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return 'กรุณากรอกที่อยู่';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                    const SizedBox(height: 16),
-                                    if (_selectedUserType == 'Rider')
+                                    if (_selectedUserType == 'User') ...[
                                       TextFormField(
-                                        controller: _licensePlateController,
-                                        decoration: const InputDecoration(
-                                          labelText: 'ป้ายทะเบียน',
-                                          border: OutlineInputBorder(),
+                                        controller: _addressController,
+                                        decoration: InputDecoration(
+                                          labelText: 'ที่อยู่',
+                                          border: const OutlineInputBorder(),
+                                          enabledBorder: const OutlineInputBorder(
+                                            borderSide: BorderSide(color: Colors.grey),
+                                          ),
                                           focusedBorder: OutlineInputBorder(
-                                            borderSide: BorderSide(
-                                                color: Colors.green,
-                                                width: 2.0),
+                                            borderSide: BorderSide(color: mainColor, width: 2.0),
+                                          ),
+                                          floatingLabelStyle: TextStyle(color: mainColor),
+                                        ),
+                                        validator: (value) => _validateField(value, 'ที่อยู่'),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: TextFormField(
+                                              controller: _latitudeController,
+                                              decoration: InputDecoration(
+                                                labelText: 'ละติจูด',
+                                                border: const OutlineInputBorder(),
+                                                enabledBorder: const OutlineInputBorder(
+                                                  borderSide: BorderSide(color: Colors.grey),
+                                                ),
+                                                focusedBorder: OutlineInputBorder(
+                                                  borderSide: BorderSide(color: mainColor, width: 2.0),
+                                                ),
+                                                floatingLabelStyle: TextStyle(color: mainColor),
+                                              ),
+                                              readOnly: true,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 16),
+                                          Expanded(
+                                            child: TextFormField(
+                                              controller: _longitudeController,
+                                              decoration: InputDecoration(
+                                                labelText: 'ลองจิจูด',
+                                                border: const OutlineInputBorder(),
+                                                enabledBorder: const OutlineInputBorder(
+                                                  borderSide: BorderSide(color: Colors.grey),
+                                                ),
+                                                focusedBorder: OutlineInputBorder(
+                                                  borderSide: BorderSide(color: mainColor, width: 2.0),
+                                                ),
+                                                floatingLabelStyle: TextStyle(color: mainColor),
+                                              ),
+                                              readOnly: true,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      ElevatedButton.icon(
+                                        onPressed: _openMap,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: mainColor,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 12,
                                           ),
                                         ),
-                                        validator: (value) {
-                                          if (value == null || value.isEmpty) {
-                                            return 'กรุณากรอกป้ายทะเบียน';
-                                          }
-                                          return null;
-                                        },
-                                      ),
-                                    const SizedBox(height: 16),
-                                    ElevatedButton.icon(
-                                      onPressed: _openMap,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: mainColor,
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 12,
+                                        icon: const Icon(Icons.location_on),
+                                        label: const Text(
+                                          'เลือกตำแหน่งปัจจุบัน',
+                                          style: TextStyle(fontSize: 16),
                                         ),
                                       ),
-                                      icon: const Icon(Icons.location_on),
-                                      label: const Text(
-                                        'เลือกตำแหน่งปัจจุบัน',
-                                        style: TextStyle(fontSize: 16),
-                                      ),
-                                    ),
-                                    if (_currentPosition != null)
-                                      Padding(
-                                        padding:
-                                            const EdgeInsets.only(top: 8.0),
-                                        child: Text(
-                                          'ตำแหน่งปัจจุบัน: ${_currentPosition!.latitude}, ${_currentPosition!.longitude}',
-                                          style: const TextStyle(fontSize: 14),
+                                    ],
+                                    if (_selectedUserType == 'Rider') ...[
+                                      const SizedBox(height: 16),
+                                      TextFormField(
+                                        controller: _licensePlateController,
+                                        decoration: InputDecoration(
+                                          labelText: 'ป้ายทะเบียน',
+                                          border: const OutlineInputBorder(),
+                                          enabledBorder: const OutlineInputBorder(
+                                            borderSide: BorderSide(color: Colors.grey),
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(color: mainColor, width: 2.0),
+                                          ),
+                                          floatingLabelStyle: TextStyle(color: mainColor),
                                         ),
+                                        validator: (value) => _validateField(value, 'ป้ายทะเบียน'),
                                       ),
+                                    ],
                                   ],
                                 ),
                               ] else if (_currentStep == 2) ...[
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('ประเภทสมาชิก: $_selectedUserType'),
-                                    const SizedBox(height: 8),
-                                    Text('เบอร์โทร: ${_phoneController.text}'),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                        'ชื่อ-นามสกุล: ${_fullNameController.text}'),
-                                    const SizedBox(height: 8),
-                                    Text('ที่อยู่: ${_addressController.text}'),
-                                    if (_selectedUserType == 'Rider') ...[
-                                      const SizedBox(height: 8),
-                                      Text(
-                                          'ป้ายทะเบียน: ${_licensePlateController.text}'),
-                                    ],
-                                    if (_currentPosition != null) ...[
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'ตำแหน่ง: ${_currentPosition!.latitude}, ${_currentPosition!.longitude}',
+                                Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Image.asset(
+                                        'assets/images/registration_success.png',
+                                        width: 200,
+                                        height: 200,
+                                      ),
+                                      const SizedBox(height: 24),
+                                      const Text(
+                                        'การสมัครเสร็จสมบูรณ์',
+                                        style: TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.green,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      const Text(
+                                        'ขอบคุณที่สมัครเป็นสมาชิกกับเรา',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.grey,
+                                        ),
                                       ),
                                     ],
-                                    const SizedBox(height: 16),
-                                    const Text('การสมัครเสร็จสมบูรณ์'),
-                                  ],
+                                  ),
                                 ),
                               ],
                               const SizedBox(height: 16),
@@ -602,7 +627,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                         } else if (_currentStep == 1) {
                                           if (_formKey.currentState!
                                               .validate()) {
-                                            if (_currentPosition == null) {
+                                            if (_selectedUserType == 'User' && _currentPosition == null) {
                                               ScaffoldMessenger.of(context)
                                                   .showSnackBar(
                                                 const SnackBar(
@@ -612,8 +637,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                               );
                                             } else {
                                               if (_confirmPasswordController
-                                                      .text !=
-                                                  _passwordController.text) {
+                                                      .text.trim() !=
+                                                  _passwordController.text.trim()) {
                                                 ScaffoldMessenger.of(context)
                                                     .showSnackBar(
                                                   const SnackBar(
@@ -621,31 +646,27 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                                         'รหัสผ่านของคุณไม่เหมือนกัน'),
                                                   ),
                                                 );
+                                                return;
                                               }
 
                                               UserBodyForCreate userBody =
                                                   UserBodyForCreate(
                                                       phone:
-                                                          _phoneController.text,
+                                                          _phoneController.text.trim(),
                                                       password:
                                                           _passwordController
-                                                              .text,
+                                                              .text.trim(),
                                                       fullname:
-                                                          _fullNameController
-                                                              .text,
+                                                          _usernameController
+                                                              .text.trim(),
                                                       role: _selectedUserType,
                                                       address:
-                                                          _addressController
-                                                              .text,
-                                                      location: Location(
-                                                          lat: _currentPosition!
-                                                              .latitude,
-                                                          long:
-                                                              _currentPosition!
-                                                                  .longitude),
-                                                      carPlate:
-                                                          _licensePlateController
-                                                              .text);
+                                                          _selectedUserType == 'User' ? _addressController.text.trim() : '',
+                                                      location: _selectedUserType == 'User'
+                                                          ? Location(lat: _currentPosition!.latitude, long: _currentPosition!.longitude)
+                                                          : null,
+                                                      carPlate: _selectedUserType == 'Rider' ? _licensePlateController.text.trim() : '',
+                                                  );
                                               var response = await ref
                                                   .read(authProvider.notifier)
                                                   .register(userBody);
