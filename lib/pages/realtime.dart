@@ -42,12 +42,15 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
   final double _stepIconSize = 30;
   final double _stepImageSize = 100;
   final double _stepSpacing = 20;
+
   final List<String> _steps = [
-    'รับงาน',
-    'เข้ารับพัสดุ',
+    'รอไรเดอร์มารับสินค้า',
+    'ไรเดอร์รับงาน',
+    'ไรเดอร์เข้ารับพัสดุ',
     'รับสินค้าแล้วกำลังเดินทาง',
     'นำส่งสินค้าแล้ว'
   ];
+
   final Color mainColor = const Color(0xFF0A9830);
 
   @override
@@ -129,6 +132,7 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
   String? _receivePhoto;
   String? _deliveryPhoto;
   String? _successPhoto;
+  String? _senderPhoto;
 
   Future<void> setupOrder() async {
     try {
@@ -138,7 +142,8 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
 
         setState(() {
           orderDetail = orderData;
-          _currentStep = ((orderData['status'] as int) - 1);
+          _currentStep = (((orderData['status'] as int?) ?? 0));
+          debugPrint("Current step is : $_currentStep");
           _processEvents();
         });
 
@@ -154,10 +159,6 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
   }
 
   void _processEvents() {
-    _receivePhoto = null;
-    _deliveryPhoto = null;
-    _successPhoto = null;
-
     final List<dynamic>? events = orderDetail['events'] as List<dynamic>?;
     if (events == null || events.isEmpty) {
       debugPrint('No events found');
@@ -172,11 +173,10 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
 
       final String eventName = event['name'] as String? ?? '';
       final String? eventPicture = event['event_picture'] as String?;
-
-      debugPrint('Processing event: $eventName');
-
       switch (eventName) {
-        case 'เข้ารับพัสดุ':
+        case 'รอไรเดอร์มารับสินค้า':
+          _senderPhoto = eventPicture;
+        case 'ไรเดอร์เข้ารับพัสดุ':
           _receivePhoto = eventPicture;
           break;
         case 'รับสินค้าแล้วกำลังเดินทาง':
@@ -249,11 +249,11 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
       if (upload['statusCode'] == 200) {
         var res = upload['data'];
         setState(() {
-          if (step == 1) {
+          if (step == 2) {
             _receivePhoto = res['url'];
-          } else if (step == 2) {
-            _deliveryPhoto = res['url'];
           } else if (step == 3) {
+            _deliveryPhoto = res['url'];
+          } else if (step == 4) {
             _successPhoto = res['url'];
           }
         });
@@ -272,6 +272,13 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
     setState(() {
       _currentStep++;
     });
+
+    if (_currentStep == 5) {
+      context.go('/tasklist');
+      _disposed = true;
+      stopRealTime();
+      _locationUpdateTimer?.cancel();
+    }
     debugPrint("${response['data']['data']}");
   }
 
@@ -537,22 +544,31 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(_steps[status],
+                Text(
+                    _currentStep < _steps.length
+                        ? _steps[_currentStep]
+                        : "จัดส่งสำเร็จแล้ว !",
                     style: const TextStyle(fontSize: 16, color: Colors.green)),
                 const SizedBox(height: 15),
                 _buildStepper(),
                 const SizedBox(height: 15),
-                SizedBox(
-                  width: MediaQuery.of(context).size.width,
-                  child: ElevatedButton(
-                    onPressed: _updateOrderStatus,
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      backgroundColor: Colors.green,
+                if (_currentStep <= _steps.length - 1)
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width,
+                    child: ElevatedButton(
+                      onPressed: _updateOrderStatus,
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        backgroundColor: Colors.green,
+                      ),
+                      child: Text(_getButtonText()),
                     ),
-                    child: Text(_getButtonText()),
                   ),
-                )
+                // TextButton(
+                //     onPressed: () {
+                //       context.go('/tasklist');
+                //     },
+                //     child: const Text("back"))
               ],
             ),
           ),
@@ -562,13 +578,13 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
   }
 
   String _getButtonText() {
-    if (_currentStep == 1 && _receivePhoto == null) {
+    if (_currentStep == 2 && _receivePhoto == null) {
       return 'ถ่ายรูปเข้ารับพัสดุ';
-    } else if (_currentStep == 2 && _deliveryPhoto == null) {
+    } else if (_currentStep == 3 && _deliveryPhoto == null) {
       return 'ถ่ายรูปกำลังเดินทาง';
-    } else if (_currentStep == 3 && _successPhoto == null) {
+    } else if (_currentStep == 4 && _successPhoto == null) {
       return 'ถ่ายรูปส่งพัสดุ';
-    } else if (_currentStep == _steps.length - 1 && _deliveryPhoto != null) {
+    } else if (_currentStep == _steps.length - 1 && _successPhoto != null) {
       return 'เสร็จสิ้นการส่ง';
     } else {
       return 'อัพเดทสถานะ';
@@ -581,7 +597,6 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
         final index = entry.key;
         final title = entry.value;
         final isActive = index <= _currentStep;
-
         return IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -641,10 +656,12 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
                         color: isActive ? Colors.black : Colors.grey,
                       ),
                     ),
-                    if (index == 1) _buildStepImage(_receivePhoto),
-                    if (index == 2) _buildStepImage(_deliveryPhoto),
-                    if (index == 3) _buildStepImage(_successPhoto),
+                    if (index == 0) _buildStepImage(_senderPhoto),
+                    if (index == 2) _buildStepImage(_receivePhoto),
+                    if (index == 3) _buildStepImage(_deliveryPhoto),
+                    if (index == 4) _buildStepImage(_successPhoto),
                     SizedBox(height: _stepSpacing),
+                    // Text('$index $isActive')
                   ],
                 ),
               ),
@@ -676,12 +693,14 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
   IconData _getStepIcon(int index) {
     switch (index) {
       case 0:
-        return Icons.assignment_turned_in;
+        return Icons.account_box_rounded;
       case 1:
-        return Icons.local_shipping;
+        return Icons.assignment_turned_in;
       case 2:
-        return Icons.directions_car;
+        return Icons.local_shipping;
       case 3:
+        return Icons.motorcycle;
+      case 4:
         return Icons.check_circle;
       default:
         return Icons.circle;
@@ -690,13 +709,13 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
 
   void _updateOrderStatus() {
     if (_currentStep < _steps.length - 1) {
-      if (_currentStep == 1 && _receivePhoto == null) {
-        _capturePhoto(1);
-      } else if (_currentStep == 2 && _deliveryPhoto == null) {
+      if (_currentStep == 2 && _receivePhoto == null) {
         _capturePhoto(2);
+      } else if (_currentStep == 3 && _deliveryPhoto == null) {
+        _capturePhoto(3);
       } else {
         switch (_currentStep) {
-          case 1:
+          case 2:
             if (_receivePhoto != null) {
               updateWork({
                 "name": _steps[_currentStep].toString(),
@@ -705,7 +724,7 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
               });
             }
             break;
-          case 2:
+          case 3:
             if (_deliveryPhoto != null) {
               updateWork({
                 "name": _steps[_currentStep].toString(),
@@ -718,7 +737,7 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
       }
     } else if (_currentStep == _steps.length - 1) {
       if (_successPhoto == null) {
-        _capturePhoto(3);
+        _capturePhoto(4);
       } else {
         if (_successPhoto != null) {
           updateWork({
@@ -726,8 +745,9 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
             "status": 5,
             "picture": _successPhoto.toString(),
           });
+        } else {
+          context.go('/tasklist');
         }
-        debugPrint('Order completed');
       }
     }
     debugPrint("$_currentStep");
