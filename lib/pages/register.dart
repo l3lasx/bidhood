@@ -1,11 +1,17 @@
+import 'dart:io';
+
+import 'package:bidhood/environments/app_config.dart';
 import 'package:bidhood/models/user/user_body_for_create.dart';
 import 'package:bidhood/providers/auth.dart';
 import 'package:bidhood/pages/map_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:image_picker/image_picker.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
@@ -20,6 +26,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   String? _selectedUserType;
   final _formKey = GlobalKey<FormState>();
   bool _isPasswordVisible = false;
+  String? avatarPicture;
 
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
@@ -32,6 +39,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   final TextEditingController _longitudeController = TextEditingController();
 
   Position? _currentPosition;
+
+  XFile? _image;
 
   void _openMap() async {
     final result = await Navigator.of(context).push(
@@ -82,6 +91,150 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     _latitudeController.dispose();
     _longitudeController.dispose();
     super.dispose();
+  }
+
+  Future<Map<String, dynamic>> uploadPublicImage(XFile imageFile) async {
+    try {
+      final dio = Dio();
+      final api = config['endpoint_1'] + '/public/upload';
+      String fileName = imageFile.name;
+      FormData formData = FormData.fromMap({
+        "file": await MultipartFile.fromFile(
+          imageFile.path,
+          filename: fileName,
+        ),
+      });
+
+      var response = await dio.post(
+        api,
+        data: formData,
+        options: Options(
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        ),
+      );
+      debugPrint('${response.data}');
+      return {
+        "statusCode": response.statusCode,
+        "data": response.data,
+      };
+    } catch (e) {
+      debugPrint("$e");
+      if (e is DioException) {
+        return {
+          "statusCode": e.response?.statusCode,
+          "data": e.response?.data,
+          "error": e.message,
+        };
+      }
+      return {
+        "statusCode": 500,
+        "error": "An unexpected error occurred",
+      };
+    }
+  }
+
+  Future<String> uploadAvatar() async {
+    var defaultPic =
+        "https://www.gravatar.com/avatar/3b3be63a4c2a439b013787725dfce802?d=identicon";
+    if (_image != null) {
+      var upload = await uploadPublicImage(_image!);
+      if (upload['statusCode'] == 200) {
+        var res = upload['data'];
+        return res['url'];
+      }
+      return defaultPic;
+    }
+    return defaultPic;
+  }
+
+  Future<void> chooseImage() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+      if (image != null) {
+        setState(() {
+          _image = image;
+        });
+      }
+    } catch (e) {
+      debugPrint("$e");
+    }
+  }
+
+  Future<void> takeAPhoto() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.camera);
+    if (image != null) {
+      setState(() {
+        _image = image;
+      });
+    }
+  }
+
+  Widget buildAvatarWithPath(XFile? xFile) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (xFile != null)
+          CircleAvatar(
+            radius: 56,
+            backgroundColor: Colors.white,
+            child: _image != null
+                ? ClipOval(
+                    child: Image.file(
+                      File(xFile.path),
+                      width: 112,
+                      height: 112,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Icon(Icons.error, color: Colors.red),
+                    ),
+                  )
+                : const Text("กรุณาเลือกรูป"),
+          )
+        else
+          CachedNetworkImage(
+            imageUrl:
+                'https://www.gravatar.com/avatar/3b3be63a4c2a439b013787725dfce802?d=identicon',
+            imageBuilder: (context, imageProvider) => CircleAvatar(
+              radius: 56,
+              backgroundImage: imageProvider,
+              backgroundColor: Colors.white,
+            ),
+            placeholder: (context, url) => const CircleAvatar(
+              radius: 56,
+              backgroundColor: Colors.white,
+              child: CircularProgressIndicator(),
+            ),
+            errorWidget: (context, url, error) => CircleAvatar(
+              radius: 56,
+              backgroundColor: Colors.white,
+              child: _buildErrorIcon(),
+            ),
+          ),
+        const SizedBox(height: 10),
+        Text(
+          xFile != null ? '' : 'No file selected',
+          style: const TextStyle(fontSize: 12),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildErrorIcon() {
+    return const Stack(
+      alignment: Alignment.center,
+      children: [
+        CircleAvatar(
+          radius: 56,
+          backgroundColor: Colors.white,
+        ),
+        Icon(Icons.error, color: Colors.red),
+      ],
+    );
   }
 
   @override
@@ -198,7 +351,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                   ),
                                 ),
                                 const Text(
-                                  'ข่อมูลของคุณจะถูกเก็บเป���นความลับ',
+                                  'ข่อมูลของคุณจะถูกเก็บเป็นความลับ',
                                   style: TextStyle(
                                     fontSize: 16,
                                   ),
@@ -316,6 +469,60 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                               ] else if (_currentStep == 1) ...[
                                 Column(
                                   children: [
+                                    buildAvatarWithPath(_image),
+                                    const SizedBox(height: 16),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: ElevatedButton.icon(
+                                            onPressed: () {
+                                              // ใส่การทำงานของปุ่มที่ 1 ตรงนี้
+                                              chooseImage();
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  const Color(0xFF0A9830),
+                                              foregroundColor: Colors.white,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 16,
+                                                      vertical: 8),
+                                            ),
+                                            icon:
+                                                const Icon(Icons.photo_library),
+                                            label: const Text(
+                                              'เลือกรูป',
+                                              style: TextStyle(fontSize: 14),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: ElevatedButton.icon(
+                                            onPressed: () {
+                                              takeAPhoto();
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  const Color(0xFF0A9830),
+                                              foregroundColor: Colors.white,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 16,
+                                                      vertical: 8),
+                                            ),
+                                            icon: const Icon(Icons.camera_alt),
+                                            label: const Text(
+                                              'ถ่ายรูป',
+                                              style: TextStyle(fontSize: 14),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
                                     TextFormField(
                                       controller: _phoneController,
                                       decoration: InputDecoration(
@@ -338,8 +545,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                         LengthLimitingTextInputFormatter(10),
                                       ],
                                       validator: (value) {
-                                        String? baseValidation = _validateField(value, 'เบอร์โทร');
-                                        if (baseValidation != null) return baseValidation;
+                                        String? baseValidation =
+                                            _validateField(value, 'เบอร์โทร');
+                                        if (baseValidation != null)
+                                          return baseValidation;
                                         if (value!.length != 10) {
                                           return 'เบอร์โทรต้องมี 10 หลัก';
                                         }
@@ -363,7 +572,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                         floatingLabelStyle:
                                             TextStyle(color: mainColor),
                                       ),
-                                      validator: (value) => _validateField(value, 'ชื่อผู้ใช้'),
+                                      validator: (value) =>
+                                          _validateField(value, 'ชื่อผู้ใช้'),
                                     ),
                                     const SizedBox(height: 16),
                                     TextFormField(
@@ -400,8 +610,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                       ),
                                       obscureText: !_isPasswordVisible,
                                       validator: (value) {
-                                        String? baseValidation = _validateField(value, 'รหัสผ่าน');
-                                        if (baseValidation != null) return baseValidation;
+                                        String? baseValidation =
+                                            _validateField(value, 'รหัสผ่าน');
+                                        if (baseValidation != null)
+                                          return baseValidation;
                                         if (value!.trim().length < 6) {
                                           return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
                                         }
@@ -446,9 +658,12 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                       ),
                                       obscureText: !_isPasswordVisible,
                                       validator: (value) {
-                                        String? baseValidation = _validateField(value, 'ยืนยันรหัสผ่าน');
-                                        if (baseValidation != null) return baseValidation;
-                                        if (value!.trim() != _passwordController.text.trim()) {
+                                        String? baseValidation = _validateField(
+                                            value, 'ยืนยันรหัสผ่าน');
+                                        if (baseValidation != null)
+                                          return baseValidation;
+                                        if (value!.trim() !=
+                                            _passwordController.text.trim()) {
                                           return 'รหัสผ่านไม่ตรงกัน';
                                         }
                                         return null;
@@ -464,15 +679,20 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                         decoration: InputDecoration(
                                           labelText: 'ที่อยู่',
                                           border: const OutlineInputBorder(),
-                                          enabledBorder: const OutlineInputBorder(
-                                            borderSide: BorderSide(color: Colors.grey),
+                                          enabledBorder:
+                                              const OutlineInputBorder(
+                                            borderSide:
+                                                BorderSide(color: Colors.grey),
                                           ),
                                           focusedBorder: OutlineInputBorder(
-                                            borderSide: BorderSide(color: mainColor, width: 2.0),
+                                            borderSide: BorderSide(
+                                                color: mainColor, width: 2.0),
                                           ),
-                                          floatingLabelStyle: TextStyle(color: mainColor),
+                                          floatingLabelStyle:
+                                              TextStyle(color: mainColor),
                                         ),
-                                        validator: (value) => _validateField(value, 'ที่อยู่'),
+                                        validator: (value) =>
+                                            _validateField(value, 'ที่อยู่'),
                                       ),
                                       const SizedBox(height: 16),
                                       Row(
@@ -482,18 +702,26 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                               controller: _latitudeController,
                                               decoration: InputDecoration(
                                                 labelText: 'ละติจูด',
-                                                border: const OutlineInputBorder(),
-                                                enabledBorder: const OutlineInputBorder(
-                                                  borderSide: BorderSide(color: Colors.grey),
+                                                border:
+                                                    const OutlineInputBorder(),
+                                                enabledBorder:
+                                                    const OutlineInputBorder(
+                                                  borderSide: BorderSide(
+                                                      color: Colors.grey),
                                                 ),
-                                                focusedBorder: OutlineInputBorder(
-                                                  borderSide: BorderSide(color: mainColor, width: 2.0),
+                                                focusedBorder:
+                                                    OutlineInputBorder(
+                                                  borderSide: BorderSide(
+                                                      color: mainColor,
+                                                      width: 2.0),
                                                 ),
-                                                floatingLabelStyle: TextStyle(color: mainColor),
+                                                floatingLabelStyle:
+                                                    TextStyle(color: mainColor),
                                                 fillColor: Colors.grey[200],
                                                 filled: true,
                                               ),
-                                              style: const TextStyle(color: Colors.black),
+                                              style: const TextStyle(
+                                                  color: Colors.black),
                                               readOnly: true,
                                               enabled: false,
                                             ),
@@ -504,18 +732,26 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                               controller: _longitudeController,
                                               decoration: InputDecoration(
                                                 labelText: 'ลองจิจูด',
-                                                border: const OutlineInputBorder(),
-                                                enabledBorder: const OutlineInputBorder(
-                                                  borderSide: BorderSide(color: Colors.grey),
+                                                border:
+                                                    const OutlineInputBorder(),
+                                                enabledBorder:
+                                                    const OutlineInputBorder(
+                                                  borderSide: BorderSide(
+                                                      color: Colors.grey),
                                                 ),
-                                                focusedBorder: OutlineInputBorder(
-                                                  borderSide: BorderSide(color: mainColor, width: 2.0),
+                                                focusedBorder:
+                                                    OutlineInputBorder(
+                                                  borderSide: BorderSide(
+                                                      color: mainColor,
+                                                      width: 2.0),
                                                 ),
-                                                floatingLabelStyle: TextStyle(color: mainColor),
+                                                floatingLabelStyle:
+                                                    TextStyle(color: mainColor),
                                                 fillColor: Colors.grey[200],
                                                 filled: true,
                                               ),
-                                              style: const TextStyle(color: Colors.black),
+                                              style: const TextStyle(
+                                                  color: Colors.black),
                                               readOnly: true,
                                               enabled: false,
                                             ),
@@ -547,15 +783,20 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                         decoration: InputDecoration(
                                           labelText: 'ป้ายทะเบียน',
                                           border: const OutlineInputBorder(),
-                                          enabledBorder: const OutlineInputBorder(
-                                            borderSide: BorderSide(color: Colors.grey),
+                                          enabledBorder:
+                                              const OutlineInputBorder(
+                                            borderSide:
+                                                BorderSide(color: Colors.grey),
                                           ),
                                           focusedBorder: OutlineInputBorder(
-                                            borderSide: BorderSide(color: mainColor, width: 2.0),
+                                            borderSide: BorderSide(
+                                                color: mainColor, width: 2.0),
                                           ),
-                                          floatingLabelStyle: TextStyle(color: mainColor),
+                                          floatingLabelStyle:
+                                              TextStyle(color: mainColor),
                                         ),
-                                        validator: (value) => _validateField(value, 'ป้ายทะเบียน'),
+                                        validator: (value) => _validateField(
+                                            value, 'ป้ายทะเบียน'),
                                       ),
                                     ],
                                   ],
@@ -635,7 +876,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                         } else if (_currentStep == 1) {
                                           if (_formKey.currentState!
                                               .validate()) {
-                                            if (_selectedUserType == 'User' && _currentPosition == null) {
+                                            if (_selectedUserType == 'User' &&
+                                                _currentPosition == null) {
                                               ScaffoldMessenger.of(context)
                                                   .showSnackBar(
                                                 const SnackBar(
@@ -645,8 +887,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                               );
                                             } else {
                                               if (_confirmPasswordController
-                                                      .text.trim() !=
-                                                  _passwordController.text.trim()) {
+                                                      .text
+                                                      .trim() !=
+                                                  _passwordController.text
+                                                      .trim()) {
                                                 ScaffoldMessenger.of(context)
                                                     .showSnackBar(
                                                   const SnackBar(
@@ -658,34 +902,52 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                               }
 
                                               // Set address to empty if the user type is Rider
-                                              if (_selectedUserType == 'Rider') {
+                                              if (_selectedUserType ==
+                                                  'Rider') {
                                                 _addressController.text = '-';
                                               }
 
-                                              UserBodyForCreate userBody =
-                                                  UserBodyForCreate(
-                                                      phone:
-                                                          _phoneController.text.trim(),
-                                                      password:
-                                                          _passwordController
-                                                              .text.trim(),
-                                                      fullname:
-                                                          _usernameController
-                                                              .text.trim(),
-                                                      role: _selectedUserType,
-                                                      address:
-                                                          _addressController.text.trim(),
-                                                      location: _selectedUserType == 'User'
-                                                          ? Location(lat: _currentPosition!.latitude, long: _currentPosition!.longitude)
-                                                          : null,
-                                                      carPlate: _selectedUserType == 'Rider' ? _licensePlateController.text.trim() : '',
-                                                  );
+                                              var avatarPic =
+                                                  await uploadAvatar();
+
+                                              UserBodyForCreate userBody = UserBodyForCreate(
+                                                  phone: _phoneController.text
+                                                      .trim(),
+                                                  password:
+                                                      _passwordController
+                                                          .text
+                                                          .trim(),
+                                                  fullname:
+                                                      _usernameController
+                                                          .text
+                                                          .trim(),
+                                                  role: _selectedUserType,
+                                                  address: _addressController
+                                                      .text
+                                                      .trim(),
+                                                  location: _selectedUserType ==
+                                                          'User'
+                                                      ? Location(
+                                                          lat: _currentPosition!
+                                                              .latitude,
+                                                          long:
+                                                              _currentPosition!
+                                                                  .longitude)
+                                                      : null,
+                                                  carPlate: _selectedUserType ==
+                                                          'Rider'
+                                                      ? _licensePlateController
+                                                          .text
+                                                          .trim()
+                                                      : '',
+                                                  avatarPicture: avatarPic);
                                               var response = await ref
                                                   .read(authProvider.notifier)
                                                   .register(userBody);
                                               if (response['statusCode'] !=
                                                   201) {
-                                                    debugPrint('${response['data']}');
+                                                debugPrint(
+                                                    '${response['data']}');
                                                 ScaffoldMessenger.of(context)
                                                     .showSnackBar(
                                                   SnackBar(
