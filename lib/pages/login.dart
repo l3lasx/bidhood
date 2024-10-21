@@ -1,20 +1,23 @@
+import 'package:bidhood/models/user/user_body_for_login.dart';
+import 'package:bidhood/providers/auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class LoginPage extends StatefulWidget {
+class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends ConsumerState<LoginPage> {
   final Color mainColor = const Color(0xFF0A9830);
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscureText = true;
   bool _showVisibilityIcon = false;
-
+  ScaffoldMessengerState? _scaffoldMessenger;
   @override
   void initState() {
     super.initState();
@@ -25,6 +28,12 @@ class _LoginPageState extends State<LoginPage> {
     setState(() {
       _showVisibilityIcon = _passwordController.text.isNotEmpty;
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _scaffoldMessenger = ScaffoldMessenger.of(context);
   }
 
   @override
@@ -155,8 +164,22 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                               const SizedBox(height: 16),
                               ElevatedButton(
-                                onPressed: () {
-                                  // TODO: Implement login logic
+                                onPressed: () async {
+                                  UserBodyForLogin userBody = UserBodyForLogin(
+                                      phone: _phoneController.text,
+                                      password: _passwordController.text);
+                                  var response = await ref
+                                      .read(authProvider.notifier)
+                                      .login(ref, userBody);
+                                  if (response['statusCode'] != 200) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                            "เข้าสู่ระบบไม่สำเร็จ ( Status ${response['statusCode']} ) ${response['data']['message']} "),
+                                      ),
+                                    );
+                                    return;
+                                  }
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.black,
@@ -174,9 +197,7 @@ class _LoginPageState extends State<LoginPage> {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   TextButton(
-                                    onPressed: () {
-                                      // TODO: Implement forgot password logic
-                                    },
+                                    onPressed: () {},
                                     child: const Text(
                                       'ลืมรหัสผ่าน ?',
                                       style: TextStyle(
@@ -230,6 +251,7 @@ class _LoginPageState extends State<LoginPage> {
   void dispose() {
     _phoneController.dispose();
     _passwordController.dispose();
+    _scaffoldMessenger?.hideCurrentSnackBar();
     super.dispose();
   }
 }

@@ -1,15 +1,20 @@
+import 'package:bidhood/models/user/user_body_for_create.dart';
+import 'package:bidhood/providers/auth.dart';
+import 'package:bidhood/pages/map_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:geolocator/geolocator.dart';
 
-class RegisterPage extends StatefulWidget {
+class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
 
   @override
-  State<RegisterPage> createState() => _RegisterPageState();
+  ConsumerState<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _RegisterPageState extends State<RegisterPage> {
+class _RegisterPageState extends ConsumerState<RegisterPage> {
   final Color mainColor = const Color(0xFF0A9830);
   int _currentStep = 0;
   String? _selectedUserType;
@@ -23,6 +28,34 @@ class _RegisterPageState extends State<RegisterPage> {
       TextEditingController();
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _licensePlateController = TextEditingController();
+
+  Position? _currentPosition;
+
+  void _openMap() async {
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => MapPicker(initialPosition: _currentPosition),
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        _currentPosition = Position(
+          latitude: result['position'].latitude,
+          longitude: result['position'].longitude,
+          timestamp: DateTime.now(),
+          accuracy: 0,
+          altitudeAccuracy: 0,
+          headingAccuracy: 0,
+          altitude: 0,
+          heading: 0,
+          speed: 0,
+          speedAccuracy: 0,
+        );
+        _addressController.text = result['address'];
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -233,14 +266,14 @@ class _RegisterPageState extends State<RegisterPage> {
                                     GestureDetector(
                                       onTap: () {
                                         setState(() {
-                                          _selectedUserType = 'rider';
+                                          _selectedUserType = 'Rider';
                                         });
                                       },
                                       child: Column(
                                         children: [
                                           Icon(
                                             Icons.motorcycle,
-                                            color: _selectedUserType == 'rider'
+                                            color: _selectedUserType == 'Rider'
                                                 ? Colors.green
                                                 : Colors.grey,
                                             size: 40,
@@ -253,17 +286,16 @@ class _RegisterPageState extends State<RegisterPage> {
                                     GestureDetector(
                                       onTap: () {
                                         setState(() {
-                                          _selectedUserType = 'customer';
+                                          _selectedUserType = 'User';
                                         });
                                       },
                                       child: Column(
                                         children: [
                                           Icon(
                                             Icons.person,
-                                            color:
-                                                _selectedUserType == 'customer'
-                                                    ? Colors.green
-                                                    : Colors.grey,
+                                            color: _selectedUserType == 'User'
+                                                ? Colors.green
+                                                : Colors.grey,
                                             size: 40,
                                           ),
                                           const SizedBox(height: 8),
@@ -451,7 +483,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                       },
                                     ),
                                     const SizedBox(height: 16),
-                                    if (_selectedUserType == 'rider')
+                                    if (_selectedUserType == 'Rider')
                                       TextFormField(
                                         controller: _licensePlateController,
                                         decoration: const InputDecoration(
@@ -470,6 +502,32 @@ class _RegisterPageState extends State<RegisterPage> {
                                           return null;
                                         },
                                       ),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton.icon(
+                                      onPressed: _openMap,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: mainColor,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 12,
+                                        ),
+                                      ),
+                                      icon: const Icon(Icons.location_on),
+                                      label: const Text(
+                                        'เลือกตำแหน่งปัจจุบัน',
+                                        style: TextStyle(fontSize: 16),
+                                      ),
+                                    ),
+                                    if (_currentPosition != null)
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(top: 8.0),
+                                        child: Text(
+                                          'ตำแหน่งปัจจุบัน: ${_currentPosition!.latitude}, ${_currentPosition!.longitude}',
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+                                      ),
                                   ],
                                 ),
                               ] else if (_currentStep == 2) ...[
@@ -484,10 +542,16 @@ class _RegisterPageState extends State<RegisterPage> {
                                         'ชื่อ-นามสกุล: ${_fullNameController.text}'),
                                     const SizedBox(height: 8),
                                     Text('ที่อยู่: ${_addressController.text}'),
-                                    if (_selectedUserType == 'rider') ...[
+                                    if (_selectedUserType == 'Rider') ...[
                                       const SizedBox(height: 8),
                                       Text(
                                           'ป้ายทะเบียน: ${_licensePlateController.text}'),
+                                    ],
+                                    if (_currentPosition != null) ...[
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'ตำแหน่ง: ${_currentPosition!.latitude}, ${_currentPosition!.longitude}',
+                                      ),
                                     ],
                                     const SizedBox(height: 16),
                                     const Text('การสมัครเสร็จสมบูรณ์'),
@@ -526,7 +590,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                      onPressed: () {
+                                      onPressed: () async {
                                         if (_currentStep == 0 &&
                                             _selectedUserType == null) {
                                           ScaffoldMessenger.of(context)
@@ -535,22 +599,92 @@ class _RegisterPageState extends State<RegisterPage> {
                                                 content: Text(
                                                     'กรุณาเลือกประเภทผู้ใช้')),
                                           );
-                                        } else if (_currentStep == 1 &&
-                                            _formKey.currentState!.validate()) {
-                                          setState(() {
-                                            _currentStep += 1;
-                                          });
                                         } else if (_currentStep == 1) {
-                                          // Form is invalid
+                                          if (_formKey.currentState!
+                                              .validate()) {
+                                            if (_currentPosition == null) {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                      'กรุณารับตำแหน่งปัจจุบัน'),
+                                                ),
+                                              );
+                                            } else {
+                                              if (_confirmPasswordController
+                                                      .text !=
+                                                  _passwordController.text) {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text(
+                                                        'รหัสผ่านของคุณไม่เหมือนกัน'),
+                                                  ),
+                                                );
+                                              }
+
+                                              UserBodyForCreate userBody =
+                                                  UserBodyForCreate(
+                                                      phone:
+                                                          _phoneController.text,
+                                                      password:
+                                                          _passwordController
+                                                              .text,
+                                                      fullname:
+                                                          _fullNameController
+                                                              .text,
+                                                      role: _selectedUserType,
+                                                      address:
+                                                          _addressController
+                                                              .text,
+                                                      location: Location(
+                                                          lat: _currentPosition!
+                                                              .latitude,
+                                                          long:
+                                                              _currentPosition!
+                                                                  .longitude),
+                                                      carPlate:
+                                                          _licensePlateController
+                                                              .text);
+                                              var response = await ref
+                                                  .read(authProvider.notifier)
+                                                  .register(userBody);
+                                              if (response['statusCode'] !=
+                                                  201) {
+                                                    debugPrint('${response['data']}');
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                        "สมัครสมาชิกไม่สำเร็จ ( Status ${response['statusCode']} ) ${response['data']['message']} "),
+                                                  ),
+                                                );
+                                                return;
+                                              }
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                      'ยินดีด้วยสมัครสมาชิกเรียบร้อย'),
+                                                ),
+                                              );
+                                              setState(() {
+                                                _currentStep += 1;
+                                              });
+                                            }
+                                          }
                                         } else {
                                           setState(() {
                                             _currentStep += 1;
                                           });
                                         }
                                       },
-                                      child: const Text(
-                                        'ถัดไป',
-                                        style: TextStyle(color: Colors.white),
+                                      child: Text(
+                                        _currentStep == 1
+                                            ? 'สมัครสมาชิก'
+                                            : 'ถัดไป',
+                                        style: const TextStyle(
+                                            color: Colors.white),
                                       ),
                                     ),
                                   ],
