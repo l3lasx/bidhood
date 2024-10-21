@@ -198,7 +198,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                   ),
                                 ),
                                 const Text(
-                                  'ข่อมูลของคุณจะถูกเก็บเป็นความลับ',
+                                  'ข่อมูลของคุณจะถูกเก็บเป���นความลับ',
                                   style: TextStyle(
                                     fontSize: 16,
                                   ),
@@ -490,8 +490,12 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                                   borderSide: BorderSide(color: mainColor, width: 2.0),
                                                 ),
                                                 floatingLabelStyle: TextStyle(color: mainColor),
+                                                fillColor: Colors.grey[200],
+                                                filled: true,
                                               ),
+                                              style: const TextStyle(color: Colors.black),
                                               readOnly: true,
+                                              enabled: false,
                                             ),
                                           ),
                                           const SizedBox(width: 16),
@@ -508,8 +512,12 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                                   borderSide: BorderSide(color: mainColor, width: 2.0),
                                                 ),
                                                 floatingLabelStyle: TextStyle(color: mainColor),
+                                                fillColor: Colors.grey[200],
+                                                filled: true,
                                               ),
+                                              style: const TextStyle(color: Colors.black),
                                               readOnly: true,
+                                              enabled: false,
                                             ),
                                           ),
                                         ],
@@ -649,6 +657,11 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                                 return;
                                               }
 
+                                              // Set address to empty if the user type is Rider
+                                              if (_selectedUserType == 'Rider') {
+                                                _addressController.text = '-';
+                                              }
+
                                               UserBodyForCreate userBody =
                                                   UserBodyForCreate(
                                                       phone:
@@ -661,7 +674,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                                               .text.trim(),
                                                       role: _selectedUserType,
                                                       address:
-                                                          _selectedUserType == 'User' ? _addressController.text.trim() : '',
+                                                          _addressController.text.trim(),
                                                       location: _selectedUserType == 'User'
                                                           ? Location(lat: _currentPosition!.latitude, long: _currentPosition!.longitude)
                                                           : null,
