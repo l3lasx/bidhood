@@ -1,12 +1,15 @@
-// ignore_for_file: invalid_use_of_visible_for_testing_member
+// ignore_for_file: invalid_use_of_visible_for_testing_member, no_leading_underscores_for_local_identifiers, depend_on_referenced_packages, unnecessary_import
 
 import 'dart:async';
-
-import 'package:bidhood/components/layouts/user.dart';
 import 'package:bidhood/components/maproute/mapbox.dart';
 import 'package:bidhood/providers/rider.dart';
 import 'package:bidhood/services/order.dart';
+import 'package:bidhood/services/rider.dart';
+import 'package:bidhood/services/upload.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dropdown_alert/alert_controller.dart';
+import 'package:flutter_dropdown_alert/model/data_alert.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geolocator_android/geolocator_android.dart';
@@ -14,15 +17,8 @@ import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:bidhood/components/layouts/user.dart';
-import 'package:flutter/material.dart';
-import 'package:latlong2/latlong.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 
 class RealTimePage extends ConsumerStatefulWidget {
   final String transactionID;
@@ -42,14 +38,18 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
   bool isLoading = true;
   Timer? _locationUpdateTimer;
   int _currentStep = 0;
-  String? _receivePhoto;
-  String? _deliveryPhoto;
+
+  final double _stepIconSize = 30;
+  final double _stepImageSize = 100;
+  final double _stepSpacing = 20;
   final List<String> _steps = [
     'รับงาน',
     'เข้ารับพัสดุ',
     'รับสินค้าแล้วกำลังเดินทาง',
     'นำส่งสินค้าแล้ว'
   ];
+  final Color mainColor = const Color(0xFF0A9830);
+
   @override
   void initState() {
     super.initState();
@@ -126,15 +126,68 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
     super.dispose();
   }
 
+  String? _receivePhoto;
+  String? _deliveryPhoto;
+  String? _successPhoto;
+
   Future<void> setupOrder() async {
-    var response = await fetchOrderDetails();
-    if (response['statusCode'] == 200) {
-      setState(() {
-        orderDetail = response['data']['data'];
-      });
-      await calculateRoutes();
-    } else {
-      debugPrint("Failed to fetch order details");
+    try {
+      var response = await fetchOrderDetails();
+      if (response['statusCode'] == 200) {
+        final orderData = response['data']['data'];
+
+        setState(() {
+          orderDetail = orderData;
+          _currentStep = ((orderData['status'] as int) - 1);
+          _processEvents();
+        });
+
+        await calculateRoutes();
+      } else {
+        debugPrint("Failed to fetch order details: ${response['statusCode']}");
+        // Consider showing an error message to the user
+      }
+    } catch (e) {
+      debugPrint("Error in setupOrder: $e");
+      // Consider showing an error message to the user
+    }
+  }
+
+  void _processEvents() {
+    _receivePhoto = null;
+    _deliveryPhoto = null;
+    _successPhoto = null;
+
+    final List<dynamic>? events = orderDetail['events'] as List<dynamic>?;
+    if (events == null || events.isEmpty) {
+      debugPrint('No events found');
+      return;
+    }
+
+    for (var event in events) {
+      if (event is! Map<String, dynamic>) {
+        debugPrint('Invalid event format: $event');
+        continue;
+      }
+
+      final String eventName = event['name'] as String? ?? '';
+      final String? eventPicture = event['event_picture'] as String?;
+
+      debugPrint('Processing event: $eventName');
+
+      switch (eventName) {
+        case 'เข้ารับพัสดุ':
+          _receivePhoto = eventPicture;
+          break;
+        case 'รับสินค้าแล้วกำลังเดินทาง':
+          _deliveryPhoto = eventPicture;
+          break;
+        case 'นำส่งสินค้าแล้ว':
+          _successPhoto = eventPicture;
+          break;
+        default:
+          debugPrint('Unhandled event: $eventName');
+      }
     }
   }
 
@@ -191,16 +244,35 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
   Future<void> _capturePhoto(int step) async {
     final ImagePicker _picker = ImagePicker();
     final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
-
     if (photo != null) {
-      setState(() {
-        if (step == 1) {
-          _receivePhoto = photo.path;
-        } else if (step == 3) {
-          _deliveryPhoto = photo.path;
-        }
-      });
+      var upload = await ref.watch(uploadService).uploadImage(photo);
+      if (upload['statusCode'] == 200) {
+        var res = upload['data'];
+        setState(() {
+          if (step == 1) {
+            _receivePhoto = res['url'];
+          } else if (step == 2) {
+            _deliveryPhoto = res['url'];
+          } else if (step == 3) {
+            _successPhoto = res['url'];
+          }
+        });
+      }
     }
+  }
+
+  Future<void> updateWork(Map<String, dynamic> data) async {
+    var response =
+        await ref.read(riderService).updateWork(widget.orderID, data);
+    if (response['statusCode'] != 200) {
+      AlertController.show("เกิดข้อผิดพลาด", "${response['data']['message']}",
+          TypeAlert.warning);
+      return;
+    }
+    setState(() {
+      _currentStep++;
+    });
+    debugPrint("${response['data']['data']}");
   }
 
   @override
@@ -208,28 +280,59 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
     var data = ref.watch(riderProvider).data;
     var pointers = ref.watch(riderProvider).routePoints;
 
-    return UserLayout(
-        bodyWidget: Positioned(
-      top: 50,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (data != null) ...[
-              buildMapBox(data, pointers),
-              if (orderDetail != {})
-                buildInfoBox()
-              else
-                const Center(child: CircularProgressIndicator()),
-            ] else
-              const Center(child: CircularProgressIndicator()),
-          ],
+    return Scaffold(
+        appBar: AppBar(
+          backgroundColor: mainColor,
+          leading: null,
+          title: const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.shopping_basket,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'BidHood',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-      ),
-    ));
+        body: Stack(
+          children: [
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (data != null) ...[
+                      buildMapBox(data, pointers),
+                      if (orderDetail != {})
+                        buildInfoBox()
+                      else
+                        const Center(child: CircularProgressIndicator()),
+                    ] else
+                      const Center(child: CircularProgressIndicator()),
+                  ],
+                ),
+              ),
+            )
+          ],
+        ));
   }
 
   Widget buildMapBox(
@@ -318,11 +421,11 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
                   Icons.person_outline),
               const SizedBox(height: 20),
               const Text('สินค้าทั้งหมด :',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
               _buildInfoOrderItem(
                   orderDetail['product_list'] as List<dynamic>?),
-              _buildStatusSection(orderDetail['status'].toString()),
+              _buildStatusSection(orderDetail['status'] ?? 0),
             ])));
   }
 
@@ -383,6 +486,7 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
+          color: Colors.grey[50],
           child: ListTile(
             leading: ClipRRect(
               borderRadius: BorderRadius.circular(8),
@@ -409,7 +513,7 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
     );
   }
 
-  Widget _buildStatusSection(String status) {
+  Widget _buildStatusSection(int status) {
     return Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
@@ -433,19 +537,22 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(status,
+                Text(_steps[status],
                     style: const TextStyle(fontSize: 16, color: Colors.green)),
                 const SizedBox(height: 15),
                 _buildStepper(),
                 const SizedBox(height: 15),
-                ElevatedButton(
-                  onPressed: _updateOrderStatus,
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: Colors.green,
+                SizedBox(
+                  width: MediaQuery.of(context).size.width,
+                  child: ElevatedButton(
+                    onPressed: _updateOrderStatus,
+                    style: ElevatedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      backgroundColor: Colors.green,
+                    ),
+                    child: Text(_getButtonText()),
                   ),
-                  child: Text(_getButtonText()),
-                ),
+                )
               ],
             ),
           ),
@@ -457,7 +564,9 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
   String _getButtonText() {
     if (_currentStep == 1 && _receivePhoto == null) {
       return 'ถ่ายรูปเข้ารับพัสดุ';
-    } else if (_currentStep == 3 && _deliveryPhoto == null) {
+    } else if (_currentStep == 2 && _deliveryPhoto == null) {
+      return 'ถ่ายรูปกำลังเดินทาง';
+    } else if (_currentStep == 3 && _successPhoto == null) {
       return 'ถ่ายรูปส่งพัสดุ';
     } else if (_currentStep == _steps.length - 1 && _deliveryPhoto != null) {
       return 'เสร็จสิ้นการส่ง';
@@ -478,12 +587,12 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(
-                width: 30,
+                width: _stepIconSize,
                 child: Column(
                   children: [
                     Container(
-                      width: 30,
-                      height: 30,
+                      width: _stepIconSize,
+                      height: _stepIconSize,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: isActive ? Colors.green : Colors.grey,
@@ -493,6 +602,7 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
                           _getStepIcon(index),
                           color: Colors.white,
                           size: 20,
+                          semanticLabel: 'Step ${index + 1} icon',
                         ),
                       ),
                     ),
@@ -531,19 +641,10 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
                         color: isActive ? Colors.black : Colors.grey,
                       ),
                     ),
-                    if (index == 1 && _receivePhoto != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: Image.file(File(_receivePhoto!),
-                            height: 50, width: 50),
-                      ),
-                    if (index == 3 && _deliveryPhoto != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: Image.file(File(_deliveryPhoto!),
-                            height: 50, width: 50),
-                      ),
-                    const SizedBox(height: 20), // Add space between steps
+                    if (index == 1) _buildStepImage(_receivePhoto),
+                    if (index == 2) _buildStepImage(_deliveryPhoto),
+                    if (index == 3) _buildStepImage(_successPhoto),
+                    SizedBox(height: _stepSpacing),
                   ],
                 ),
               ),
@@ -551,6 +652,24 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
           ),
         );
       }).toList(),
+    );
+  }
+
+  Widget _buildStepImage(String? imageUrl) {
+    if (imageUrl == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 8.0),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: CachedNetworkImage(
+          imageUrl: imageUrl,
+          width: _stepImageSize,
+          height: _stepImageSize,
+          fit: BoxFit.cover,
+          placeholder: (context, url) => const CircularProgressIndicator(),
+          errorWidget: (context, url, error) => const Icon(Icons.error),
+        ),
+      ),
     );
   }
 
@@ -573,21 +692,44 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
     if (_currentStep < _steps.length - 1) {
       if (_currentStep == 1 && _receivePhoto == null) {
         _capturePhoto(1);
-      } else if (_currentStep == 2) {
-        setState(() {
-          _currentStep++;
-        });
+      } else if (_currentStep == 2 && _deliveryPhoto == null) {
+        _capturePhoto(2);
       } else {
-        setState(() {
-          _currentStep++;
-        });
+        switch (_currentStep) {
+          case 1:
+            if (_receivePhoto != null) {
+              updateWork({
+                "name": _steps[_currentStep].toString(),
+                "status": 3,
+                "picture": _receivePhoto.toString()
+              });
+            }
+            break;
+          case 2:
+            if (_deliveryPhoto != null) {
+              updateWork({
+                "name": _steps[_currentStep].toString(),
+                "status": 4,
+                "picture": _deliveryPhoto.toString()
+              });
+            }
+            break;
+        }
       }
     } else if (_currentStep == _steps.length - 1) {
-      if (_deliveryPhoto == null) {
+      if (_successPhoto == null) {
         _capturePhoto(3);
       } else {
+        if (_successPhoto != null) {
+          updateWork({
+            "name": _steps[_currentStep].toString(),
+            "status": 5,
+            "picture": _successPhoto.toString(),
+          });
+        }
         debugPrint('Order completed');
       }
     }
+    debugPrint("$_currentStep");
   }
 }
