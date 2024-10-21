@@ -174,7 +174,7 @@ class _MapBoxState extends State<MapBox> {
                         color: Colors.blue))
               ])),
           Padding(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(20),
             child: Center(
               child: Text(widget.noteHint),
             ),

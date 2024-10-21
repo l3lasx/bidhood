@@ -1,9 +1,12 @@
 {
     "cSpell.words": [
+        "bidhood",
         "Firestore",
         "fullname",
         "Geolocator",
         "latlong",
+        "mapbox",
+        "maproute",
         "Polyline",
         "polylines",
         "prefs"

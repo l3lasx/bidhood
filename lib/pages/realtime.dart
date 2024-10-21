@@ -1,12 +1,15 @@
-// ignore_for_file: invalid_use_of_visible_for_testing_member
+// ignore_for_file: invalid_use_of_visible_for_testing_member, no_leading_underscores_for_local_identifiers, depend_on_referenced_packages, unnecessary_import
 
 import 'dart:async';
-
-import 'package:bidhood/components/layouts/user.dart';
 import 'package:bidhood/components/maproute/mapbox.dart';
 import 'package:bidhood/providers/rider.dart';
 import 'package:bidhood/services/order.dart';
+import 'package:bidhood/services/rider.dart';
+import 'package:bidhood/services/upload.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dropdown_alert/alert_controller.dart';
+import 'package:flutter_dropdown_alert/model/data_alert.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geolocator_android/geolocator_android.dart';
@@ -14,15 +17,8 @@ import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:bidhood/components/layouts/user.dart';
-import 'package:flutter/material.dart';
-import 'package:latlong2/latlong.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 
 class RealTimePage extends ConsumerStatefulWidget {
   final String transactionID;
@@ -41,6 +37,21 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
   Map<String, dynamic> orderDetail = {};
   bool isLoading = true;
   Timer? _locationUpdateTimer;
+  int _currentStep = 0;
+
+  final double _stepIconSize = 30;
+  final double _stepImageSize = 100;
+  final double _stepSpacing = 20;
+
+  final List<String> _steps = [
+    'รอไรเดอร์มารับสินค้า',
+    'ไรเดอร์รับงาน',
+    'ไรเดอร์เข้ารับพัสดุ',
+    'รับสินค้าแล้วกำลังเดินทาง',
+    'นำส่งสินค้าแล้ว'
+  ];
+
+  final Color mainColor = const Color(0xFF0A9830);
 
   @override
   void initState() {
@@ -118,15 +129,65 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
     super.dispose();
   }
 
+  String? _receivePhoto;
+  String? _deliveryPhoto;
+  String? _successPhoto;
+  String? _senderPhoto;
+
   Future<void> setupOrder() async {
-    var response = await fetchOrderDetails();
-    if (response['statusCode'] == 200) {
-      setState(() {
-        orderDetail = response['data']['data'];
-      });
-      await calculateRoutes();
-    } else {
-      debugPrint("Failed to fetch order details");
+    try {
+      var response = await fetchOrderDetails();
+      if (response['statusCode'] == 200) {
+        final orderData = response['data']['data'];
+
+        setState(() {
+          orderDetail = orderData;
+          _currentStep = (((orderData['status'] as int?) ?? 0));
+          debugPrint("Current step is : $_currentStep");
+          _processEvents();
+        });
+
+        await calculateRoutes();
+      } else {
+        debugPrint("Failed to fetch order details: ${response['statusCode']}");
+        // Consider showing an error message to the user
+      }
+    } catch (e) {
+      debugPrint("Error in setupOrder: $e");
+      // Consider showing an error message to the user
+    }
+  }
+
+  void _processEvents() {
+    final List<dynamic>? events = orderDetail['events'] as List<dynamic>?;
+    if (events == null || events.isEmpty) {
+      debugPrint('No events found');
+      return;
+    }
+
+    for (var event in events) {
+      if (event is! Map<String, dynamic>) {
+        debugPrint('Invalid event format: $event');
+        continue;
+      }
+
+      final String eventName = event['name'] as String? ?? '';
+      final String? eventPicture = event['event_picture'] as String?;
+      switch (eventName) {
+        case 'รอไรเดอร์มารับสินค้า':
+          _senderPhoto = eventPicture;
+        case 'ไรเดอร์เข้ารับพัสดุ':
+          _receivePhoto = eventPicture;
+          break;
+        case 'รับสินค้าแล้วกำลังเดินทาง':
+          _deliveryPhoto = eventPicture;
+          break;
+        case 'นำส่งสินค้าแล้ว':
+          _successPhoto = eventPicture;
+          break;
+        default:
+          debugPrint('Unhandled event: $eventName');
+      }
     }
   }
 
@@ -180,29 +241,105 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
     return {"isError": true, "routePoints": [], "distance": -1};
   }
 
+  Future<void> _capturePhoto(int step) async {
+    final ImagePicker _picker = ImagePicker();
+    final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
+    if (photo != null) {
+      var upload = await ref.watch(uploadService).uploadImage(photo);
+      if (upload['statusCode'] == 200) {
+        var res = upload['data'];
+        setState(() {
+          if (step == 2) {
+            _receivePhoto = res['url'];
+          } else if (step == 3) {
+            _deliveryPhoto = res['url'];
+          } else if (step == 4) {
+            _successPhoto = res['url'];
+          }
+        });
+      }
+    }
+  }
+
+  Future<void> updateWork(Map<String, dynamic> data) async {
+    var response =
+        await ref.read(riderService).updateWork(widget.orderID, data);
+    if (response['statusCode'] != 200) {
+      AlertController.show("เกิดข้อผิดพลาด", "${response['data']['message']}",
+          TypeAlert.warning);
+      return;
+    }
+    setState(() {
+      _currentStep++;
+    });
+
+    if (_currentStep == 5) {
+      context.go('/tasklist');
+      _disposed = true;
+      stopRealTime();
+      _locationUpdateTimer?.cancel();
+    }
+    debugPrint("${response['data']['data']}");
+  }
+
   @override
   Widget build(BuildContext context) {
     var data = ref.watch(riderProvider).data;
     var pointers = ref.watch(riderProvider).routePoints;
 
-    return UserLayout(
-        bodyWidget: Positioned(
-      top: 50,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (data != null)
-              buildMapBox(data, pointers)
-            else
-              const Center(child: CircularProgressIndicator()),
-          ],
+    return Scaffold(
+        appBar: AppBar(
+          backgroundColor: mainColor,
+          leading: null,
+          title: const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.shopping_basket,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'BidHood',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-      ),
-    ));
+        body: Stack(
+          children: [
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (data != null) ...[
+                      buildMapBox(data, pointers),
+                      if (orderDetail != {})
+                        buildInfoBox()
+                      else
+                        const Center(child: CircularProgressIndicator()),
+                    ] else
+                      const Center(child: CircularProgressIndicator()),
+                  ],
+                ),
+              ),
+            )
+          ],
+        ));
   }
 
   Widget buildMapBox(
@@ -251,519 +388,368 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
     }
     return 0.0;
   }
+
+  Widget buildInfoBox() {
+    return Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Container(
+            width: MediaQuery.of(context).size.width,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.2),
+                  spreadRadius: 2,
+                  blurRadius: 5,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(20),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Order ID: ${orderDetail['order_id'] ?? 'N/A'}',
+                  style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue)),
+              const SizedBox(height: 20),
+              _buildInfoSection(
+                  'ผู้ส่ง',
+                  orderDetail['user']?['fullname'] ?? 'N/A',
+                  orderDetail['user']?['address'] ?? 'N/A',
+                  Icons.person),
+              const SizedBox(height: 20),
+              _buildInfoSection(
+                  'ผู้รับ',
+                  orderDetail['receiver']?['fullname'] ?? 'N/A',
+                  orderDetail['receiver']?['address'] ?? 'N/A',
+                  Icons.person_outline),
+              const SizedBox(height: 20),
+              const Text('สินค้าทั้งหมด :',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              _buildInfoOrderItem(
+                  orderDetail['product_list'] as List<dynamic>?),
+              _buildStatusSection(orderDetail['status'] ?? 0),
+            ])));
+  }
+
+  Widget _buildInfoSection(
+      String title, String name, String address, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: Colors.blue),
+              const SizedBox(width: 10),
+              Text('$title:',
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 5),
+          Padding(
+            padding: const EdgeInsets.only(left: 34),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name, style: const TextStyle(fontSize: 16)),
+                Text('ที่อยู่ $address',
+                    style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoOrderItem(List<dynamic>? productList) {
+    if (productList == null || productList.isEmpty) {
+      return const Card(
+        child: ListTile(
+          title: Text('No products available'),
+        ),
+      );
+    }
+
+    return Column(
+      children: productList.map<Widget>((product) {
+        final String description = product['description'] ?? 'Unknown Product';
+        final String imageUrl = product['image'] ?? '';
+        final int quantity = product['quantity'] ?? 1;
+        return Card(
+          elevation: 2,
+          margin: const EdgeInsets.only(bottom: 10),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          color: Colors.grey[50],
+          child: ListTile(
+            leading: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: imageUrl.isNotEmpty
+                  ? Image.network(
+                      imageUrl,
+                      width: 50,
+                      height: 50,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(Icons.error, size: 50);
+                      },
+                    )
+                  : const Icon(Icons.image_not_supported, size: 50),
+            ),
+            title: Text(
+              description,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Text('จำนวน: $quantity'),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildStatusSection(int status) {
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.green[50],
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.green),
+              SizedBox(width: 10),
+              Text('สถานะออเดอร์',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 5),
+          Padding(
+            padding: const EdgeInsets.only(left: 34),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                    _currentStep < _steps.length
+                        ? _steps[_currentStep]
+                        : "จัดส่งสำเร็จแล้ว !",
+                    style: const TextStyle(fontSize: 16, color: Colors.green)),
+                const SizedBox(height: 15),
+                _buildStepper(),
+                const SizedBox(height: 15),
+                if (_currentStep <= _steps.length - 1)
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width,
+                    child: ElevatedButton(
+                      onPressed: _updateOrderStatus,
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        backgroundColor: Colors.green,
+                      ),
+                      child: Text(_getButtonText()),
+                    ),
+                  ),
+                // TextButton(
+                //     onPressed: () {
+                //       context.go('/tasklist');
+                //     },
+                //     child: const Text("back"))
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getButtonText() {
+    if (_currentStep == 2 && _receivePhoto == null) {
+      return 'ถ่ายรูปเข้ารับพัสดุ';
+    } else if (_currentStep == 3 && _deliveryPhoto == null) {
+      return 'ถ่ายรูปกำลังเดินทาง';
+    } else if (_currentStep == 4 && _successPhoto == null) {
+      return 'ถ่ายรูปส่งพัสดุ';
+    } else if (_currentStep == _steps.length - 1 && _successPhoto != null) {
+      return 'เสร็จสิ้นการส่ง';
+    } else {
+      return 'อัพเดทสถานะ';
+    }
+  }
+
+  Widget _buildStepper() {
+    return Column(
+      children: _steps.asMap().entries.map((entry) {
+        final index = entry.key;
+        final title = entry.value;
+        final isActive = index <= _currentStep;
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: _stepIconSize,
+                child: Column(
+                  children: [
+                    Container(
+                      width: _stepIconSize,
+                      height: _stepIconSize,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isActive ? Colors.green : Colors.grey,
+                      ),
+                      child: Center(
+                        child: Icon(
+                          _getStepIcon(index),
+                          color: Colors.white,
+                          size: 20,
+                          semanticLabel: 'Step ${index + 1} icon',
+                        ),
+                      ),
+                    ),
+                    if (index < _steps.length - 1)
+                      Expanded(
+                        child: Container(
+                          width: 2,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                isActive ? Colors.green : Colors.grey,
+                                index + 1 <= _currentStep
+                                    ? Colors.green
+                                    : Colors.grey,
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight:
+                            isActive ? FontWeight.bold : FontWeight.normal,
+                        color: isActive ? Colors.black : Colors.grey,
+                      ),
+                    ),
+                    if (index == 0) _buildStepImage(_senderPhoto),
+                    if (index == 2) _buildStepImage(_receivePhoto),
+                    if (index == 3) _buildStepImage(_deliveryPhoto),
+                    if (index == 4) _buildStepImage(_successPhoto),
+                    SizedBox(height: _stepSpacing),
+                    // Text('$index $isActive')
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildStepImage(String? imageUrl) {
+    if (imageUrl == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 8.0),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: CachedNetworkImage(
+          imageUrl: imageUrl,
+          width: _stepImageSize,
+          height: _stepImageSize,
+          fit: BoxFit.cover,
+          placeholder: (context, url) => const CircularProgressIndicator(),
+          errorWidget: (context, url, error) => const Icon(Icons.error),
+        ),
+      ),
+    );
+  }
+
+  IconData _getStepIcon(int index) {
+    switch (index) {
+      case 0:
+        return Icons.account_box_rounded;
+      case 1:
+        return Icons.assignment_turned_in;
+      case 2:
+        return Icons.local_shipping;
+      case 3:
+        return Icons.motorcycle;
+      case 4:
+        return Icons.check_circle;
+      default:
+        return Icons.circle;
+    }
+  }
+
+  void _updateOrderStatus() {
+    if (_currentStep < _steps.length - 1) {
+      if (_currentStep == 2 && _receivePhoto == null) {
+        _capturePhoto(2);
+      } else if (_currentStep == 3 && _deliveryPhoto == null) {
+        _capturePhoto(3);
+      } else {
+        switch (_currentStep) {
+          case 2:
+            if (_receivePhoto != null) {
+              updateWork({
+                "name": _steps[_currentStep].toString(),
+                "status": 3,
+                "picture": _receivePhoto.toString()
+              });
+            }
+            break;
+          case 3:
+            if (_deliveryPhoto != null) {
+              updateWork({
+                "name": _steps[_currentStep].toString(),
+                "status": 4,
+                "picture": _deliveryPhoto.toString()
+              });
+            }
+            break;
+        }
+      }
+    } else if (_currentStep == _steps.length - 1) {
+      if (_successPhoto == null) {
+        _capturePhoto(4);
+      } else {
+        if (_successPhoto != null) {
+          updateWork({
+            "name": _steps[_currentStep].toString(),
+            "status": 5,
+            "picture": _successPhoto.toString(),
+          });
+        } else {
+          context.go('/tasklist');
+        }
+      }
+    }
+    debugPrint("$_currentStep");
+  }
 }
-
-
-
-
-
-  // void _fetchMockData() {
-  //   // Mock data
-  //   currentTask = {
-  //     'order_id': 'ORD001',
-  //     'sender': {
-  //       'fullname': 'John Doe',
-  //       'address': '123 Sender St, Bangkok',
-  //       'location': {'lat': 13.7563, 'long': 100.5018},
-  //     },
-  //     'receiver': {
-  //       'fullname': 'Jane Smith',
-  //       'address': '456 Receiver Rd, Bangkok',
-  //       'location': {'lat': 13.7469, 'long': 100.5389},
-  //     },
-  //     'product_list': [
-  //       {
-  //         'name': 'Product 1',
-  //         'quantity': 2,
-  //         'image':
-  //             'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcThmD6otXBsKXfF-ldVpx1Zw53uej5PGyKX2w&s'
-  //       },
-  //       {
-  //         'name': 'Product 2',
-  //         'quantity': 1,
-  //         'image':
-  //             'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcThmD6otXBsKXfF-ldVpx1Zw53uej5PGyKX2w&s'
-  //       },
-  //     ],
-  //     'status': 'In Progress',
-  //     'created_at': '2023-06-01T10:00:00Z',
-  //   };
-  //   // Set initial step to 1 (เข้ารับพัสดุ) instead of 0
-  //   _currentStep = 1;
-  //   _fetchRouteAndDistance();
-  // }
-
-  // Future<void> _fetchRouteAndDistance() async {
-  //   setState(() {
-  //     _isLoading = true;
-  //   });
-
-  //   final senderLocation = LatLng(
-  //     currentTask['sender']['location']['lat'],
-  //     currentTask['sender']['location']['long'],
-  //   );
-  //   final receiverLocation = LatLng(
-  //     currentTask['receiver']['location']['lat'],
-  //     currentTask['receiver']['location']['long'],
-  //   );
-
-  //   final response = await http.get(Uri.parse(
-  //       'http://router.project-osrm.org/route/v1/driving/${senderLocation.longitude},${senderLocation.latitude};${receiverLocation.longitude},${receiverLocation.latitude}?overview=full&geometries=geojson'));
-
-  //   if (response.statusCode == 200) {
-  //     final data = json.decode(response.body);
-  //     final coordinates = data['routes'][0]['geometry']['coordinates'] as List;
-  //     final distance = data['routes'][0]['distance'] as num;
-
-  //     setState(() {
-  //       _routePoints = coordinates
-  //           .map((coord) => LatLng(coord[1] as double, coord[0] as double))
-  //           .toList();
-  //       _distance = distance / 1000; // Convert meters to kilometers
-  //       _isLoading = false;
-  //     });
-  //   } else {
-  //     print('Failed to fetch route and distance');
-  //     setState(() {
-  //       _isLoading = false;
-  //     });
-  //   }
-  // }
-
-  // Future<void> _capturePhoto(int step) async {
-  //   final ImagePicker _picker = ImagePicker();
-  //   final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
-
-  //   if (photo != null) {
-  //     setState(() {
-  //       if (step == 1) {
-  //         _receivePhoto = photo.path;
-  //       } else if (step == 3) {
-  //         _deliveryPhoto = photo.path;
-  //       }
-  //     });
-  //   }
-  // }
-
-  // @override
-  // Widget build(BuildContext context) {
-  //   return UserLayout(
-  //     bodyWidget: Positioned(
-  //       top: 50,
-  //       left: 0,
-  //       right: 0,
-  //       bottom: 0,
-  //       child: SafeArea(
-  //         child: Container(
-  //           child: SingleChildScrollView(
-  //             child: Column(
-  //               crossAxisAlignment: CrossAxisAlignment.start,
-  //               children: [
-  //                 Padding(
-  //                   padding: const EdgeInsets.all(20.0),
-  //                   child: Column(
-  //                     children: [
-  //                       Container(
-  //                         height: 300,
-  //                         decoration: BoxDecoration(
-  //                           border: Border.all(
-  //                               color: Colors.grey.shade300, width: 1),
-  //                           borderRadius: BorderRadius.circular(15),
-  //                         ),
-  //                         child: ClipRRect(
-  //                           borderRadius: BorderRadius.circular(15),
-  //                           child: _isLoading
-  //                               ? Center(child: CircularProgressIndicator())
-  //                               : FlutterMap(
-  //                                   options: MapOptions(
-  //                                     center: LatLng(
-  //                                       (currentTask['sender']['location']
-  //                                                   ['lat'] +
-  //                                               currentTask['receiver']
-  //                                                   ['location']['lat']) /
-  //                                           2,
-  //                                       (currentTask['sender']['location']
-  //                                                   ['long'] +
-  //                                               currentTask['receiver']
-  //                                                   ['location']['long']) /
-  //                                           2,
-  //                                     ),
-  //                                     zoom: 12.0,
-  //                                   ),
-  //                                   children: [
-  //                                     TileLayer(
-  //                                       urlTemplate:
-  //                                           'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-  //                                       subdomains: ['a', 'b', 'c'],
-  //                                     ),
-  //                                     PolylineLayer(
-  //                                       polylines: [
-  //                                         Polyline(
-  //                                           points: _routePoints,
-  //                                           strokeWidth: 4.0,
-  //                                           color: Colors.blue,
-  //                                         ),
-  //                                       ],
-  //                                     ),
-  //                                     MarkerLayer(
-  //                                       markers: [
-  //                                         Marker(
-  //                                           width: 40.0,
-  //                                           height: 40.0,
-  //                                           point: LatLng(
-  //                                               currentTask['sender']
-  //                                                   ['location']['lat'],
-  //                                               currentTask['sender']
-  //                                                   ['location']['long']),
-  //                                           builder: (ctx) => Icon(
-  //                                               Icons.location_on,
-  //                                               color: Colors.blue),
-  //                                         ),
-  //                                         Marker(
-  //                                           width: 40.0,
-  //                                           height: 40.0,
-  //                                           point: LatLng(
-  //                                               currentTask['receiver']
-  //                                                   ['location']['lat'],
-  //                                               currentTask['receiver']
-  //                                                   ['location']['long']),
-  //                                           builder: (ctx) => Icon(
-  //                                               Icons.location_on,
-  //                                               color: Colors.red),
-  //                                         ),
-  //                                       ],
-  //                                     ),
-  //                                   ],
-  //                                 ),
-  //                         ),
-  //                       ),
-  //                       SizedBox(height: 10),
-  //                       Container(
-  //                         padding: EdgeInsets.all(10),
-  //                         decoration: BoxDecoration(
-  //                           color: Colors.blue[50],
-  //                           borderRadius: BorderRadius.circular(10),
-  //                         ),
-  //                         child: Row(
-  //                           mainAxisAlignment: MainAxisAlignment.center,
-  //                           children: [
-  //                             Icon(Icons.directions_car, color: Colors.blue),
-  //                             SizedBox(width: 10),
-  //                             Text(
-  //                                 'Distance: ${_distance.toStringAsFixed(2)} km',
-  //                                 style: TextStyle(
-  //                                     fontSize: 18,
-  //                                     fontWeight: FontWeight.bold,
-  //                                     color: Colors.blue)),
-  //                           ],
-  //                         ),
-  //                       ),
-  //                     ],
-  //                   ),
-  //                 ),
-  //                 Padding(
-  //                   padding: const EdgeInsets.all(20.0),
-  //                   child: Container(
-  //                     decoration: BoxDecoration(
-  //                       color: Colors.white,
-  //                       borderRadius: BorderRadius.circular(15),
-  //                       boxShadow: [
-  //                         BoxShadow(
-  //                           color: Colors.grey.withOpacity(0.2),
-  //                           spreadRadius: 2,
-  //                           blurRadius: 5,
-  //                           offset: Offset(0, 3),
-  //                         ),
-  //                       ],
-  //                     ),
-  //                     padding: EdgeInsets.all(20),
-  //                     child: Column(
-  //                       crossAxisAlignment: CrossAxisAlignment.start,
-  //                       children: [
-  //                         Text('Order ID: ${currentTask['order_id']}',
-  //                             style: TextStyle(
-  //                                 fontSize: 22,
-  //                                 fontWeight: FontWeight.bold,
-  //                                 color: Colors.blue)),
-  //                         SizedBox(height: 20),
-  //                         _buildInfoSection(
-  //                             'Sender',
-  //                             currentTask['sender']['fullname'],
-  //                             currentTask['sender']['address'],
-  //                             Icons.person),
-  //                         SizedBox(height: 20),
-  //                         _buildInfoSection(
-  //                             'Receiver',
-  //                             currentTask['receiver']['fullname'],
-  //                             currentTask['receiver']['address'],
-  //                             Icons.person_outline),
-  //                         SizedBox(height: 20),
-  //                         _buildStatusSection(
-  //                             currentTask['status'], currentTask['created_at']),
-  //                         SizedBox(height: 20),
-  //                         Text('Products:',
-  //                             style: TextStyle(
-  //                                 fontSize: 20, fontWeight: FontWeight.bold)),
-  //                         SizedBox(height: 10),
-  //                         ...currentTask['product_list']
-  //                             .map<Widget>((product) => Card(
-  //                                   elevation: 2,
-  //                                   margin: EdgeInsets.only(bottom: 10),
-  //                                   shape: RoundedRectangleBorder(
-  //                                       borderRadius:
-  //                                           BorderRadius.circular(10)),
-  //                                   child: ListTile(
-  //                                     leading: ClipRRect(
-  //                                       borderRadius: BorderRadius.circular(8),
-  //                                       child: Image.network(product['image'],
-  //                                           width: 50,
-  //                                           height: 50,
-  //                                           fit: BoxFit.cover),
-  //                                     ),
-  //                                     title: Text(product['name'],
-  //                                         style: TextStyle(
-  //                                             fontWeight: FontWeight.bold)),
-  //                                     subtitle: Text(
-  //                                         'Quantity: ${product['quantity']}'),
-  //                                     trailing: Icon(Icons.arrow_forward_ios,
-  //                                         size: 16),
-  //                                   ),
-  //                                 ))
-  //                             .toList(),
-  //                       ],
-  //                     ),
-  //                   ),
-  //                 ),
-  //               ],
-  //             ),
-  //           ),
-  //         ),
-  //       ),
-  //     ),
-  //   );
-  // }
-
-  // Widget _buildInfoSection(
-  //     String title, String name, String address, IconData icon) {
-  //   return Container(
-  //     padding: EdgeInsets.all(15),
-  //     decoration: BoxDecoration(
-  //       color: Colors.grey[50],
-  //       borderRadius: BorderRadius.circular(10),
-  //     ),
-  //     child: Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         Row(
-  //           children: [
-  //             Icon(icon, color: Colors.blue),
-  //             SizedBox(width: 10),
-  //             Text('$title:',
-  //                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-  //           ],
-  //         ),
-  //         SizedBox(height: 5),
-  //         Padding(
-  //           padding: EdgeInsets.only(left: 34),
-  //           child: Column(
-  //             crossAxisAlignment: CrossAxisAlignment.start,
-  //             children: [
-  //               Text(name, style: TextStyle(fontSize: 16)),
-  //               Text(address,
-  //                   style: TextStyle(fontSize: 16, color: Colors.grey[600])),
-  //             ],
-  //           ),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
-
-  // Widget _buildStatusSection(String status, String createdAt) {
-  //   return Container(
-  //     padding: EdgeInsets.all(15),
-  //     decoration: BoxDecoration(
-  //       color: Colors.green[50],
-  //       borderRadius: BorderRadius.circular(10),
-  //     ),
-  //     child: Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         Row(
-  //           children: [
-  //             Icon(Icons.info_outline, color: Colors.green),
-  //             SizedBox(width: 10),
-  //             Text('Status:',
-  //                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-  //           ],
-  //         ),
-  //         SizedBox(height: 5),
-  //         Padding(
-  //           padding: EdgeInsets.only(left: 34),
-  //           child: Column(
-  //             crossAxisAlignment: CrossAxisAlignment.start,
-  //             children: [
-  //               Text(status,
-  //                   style: TextStyle(fontSize: 16, color: Colors.green)),
-  //               Text('Created At: $createdAt',
-  //                   style: TextStyle(fontSize: 14, color: Colors.grey[600])),
-  //               SizedBox(height: 15),
-  //               _buildStepper(),
-  //               SizedBox(height: 15),
-  //               ElevatedButton(
-  //                 onPressed: _updateOrderStatus,
-  //                 child: Text(_getButtonText()),
-  //                 style: ElevatedButton.styleFrom(
-  //                   foregroundColor: Colors.white,
-  //                   backgroundColor: Colors.green,
-  //                 ),
-  //               ),
-  //             ],
-  //           ),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
-
-  // Widget _buildStepper() {
-  //   return Column(
-  //     children: _steps.asMap().entries.map((entry) {
-  //       final index = entry.key;
-  //       final title = entry.value;
-  //       final isActive = index <= _currentStep;
-
-  //       return IntrinsicHeight(
-  //         child: Row(
-  //           crossAxisAlignment: CrossAxisAlignment.start,
-  //           children: [
-  //             SizedBox(
-  //               width: 30,
-  //               child: Column(
-  //                 children: [
-  //                   Container(
-  //                     width: 30,
-  //                     height: 30,
-  //                     decoration: BoxDecoration(
-  //                       shape: BoxShape.circle,
-  //                       color: isActive ? Colors.green : Colors.grey,
-  //                     ),
-  //                     child: Center(
-  //                       child: Icon(
-  //                         _getStepIcon(index),
-  //                         color: Colors.white,
-  //                         size: 20,
-  //                       ),
-  //                     ),
-  //                   ),
-  //                   if (index < _steps.length - 1)
-  //                     Expanded(
-  //                       child: Container(
-  //                         width: 2,
-  //                         decoration: BoxDecoration(
-  //                           gradient: LinearGradient(
-  //                             begin: Alignment.topCenter,
-  //                             end: Alignment.bottomCenter,
-  //                             colors: [
-  //                               isActive ? Colors.green : Colors.grey,
-  //                               index + 1 <= _currentStep
-  //                                   ? Colors.green
-  //                                   : Colors.grey,
-  //                             ],
-  //                           ),
-  //                         ),
-  //                       ),
-  //                     ),
-  //                 ],
-  //               ),
-  //             ),
-  //             SizedBox(width: 10),
-  //             Expanded(
-  //               child: Column(
-  //                 crossAxisAlignment: CrossAxisAlignment.start,
-  //                 children: [
-  //                   Text(
-  //                     title,
-  //                     style: TextStyle(
-  //                       fontSize: 16,
-  //                       fontWeight:
-  //                           isActive ? FontWeight.bold : FontWeight.normal,
-  //                       color: isActive ? Colors.black : Colors.grey,
-  //                     ),
-  //                   ),
-  //                   if (index == 1 && _receivePhoto != null)
-  //                     Padding(
-  //                       padding: const EdgeInsets.only(top: 8.0),
-  //                       child: Image.file(File(_receivePhoto!),
-  //                           height: 50, width: 50),
-  //                     ),
-  //                   if (index == 3 && _deliveryPhoto != null)
-  //                     Padding(
-  //                       padding: const EdgeInsets.only(top: 8.0),
-  //                       child: Image.file(File(_deliveryPhoto!),
-  //                           height: 50, width: 50),
-  //                     ),
-  //                   SizedBox(height: 20), // Add space between steps
-  //                 ],
-  //               ),
-  //             ),
-  //           ],
-  //         ),
-  //       );
-  //     }).toList(),
-  //   );
-  // }
-
-  // IconData _getStepIcon(int index) {
-  //   switch (index) {
-  //     case 0:
-  //       return Icons.assignment_turned_in; // New icon for "รับงาน"
-  //     case 1:
-  //       return Icons.local_shipping;
-  //     case 2:
-  //       return Icons.directions_car;
-  //     case 3:
-  //       return Icons.check_circle;
-  //     default:
-  //       return Icons.circle;
-  //   }
-  // }
-
-  // void _updateOrderStatus() {
-  //   if (_currentStep < _steps.length - 1) {
-  //     if (_currentStep == 1 && _receivePhoto == null) {
-  //       _capturePhoto(1);
-  //     } else if (_currentStep == 2) {
-  //       setState(() {
-  //         _currentStep++;
-  //       });
-  //     } else {
-  //       setState(() {
-  //         _currentStep++;
-  //       });
-  //     }
-  //   } else if (_currentStep == _steps.length - 1) {
-  //     if (_deliveryPhoto == null) {
-  //       _capturePhoto(3);
-  //     } else {
-  //       // This is the final step and we have the delivery photo
-  //       print('Order completed');
-  //       // For example: await ref.read(orderService).completeOrder(currentTask['order_id']);
-  //     }
-  //   }
-
-  //   // Here you would typically update the order status in your backend
-  //   // For example: await ref.read(orderService).updateStatus(currentTask['order_id'], _steps[_currentStep]);
-  // }
-
-  // String _getButtonText() {
-  //   if (_currentStep == 1 && _receivePhoto == null) {
-  //     return 'ถ่ายรูปเข้ารับพัสดุ';
-  //   } else if (_currentStep == 3 && _deliveryPhoto == null) {
-  //     return 'ถ่ายรูปส่งพัสดุ';
-  //   } else if (_currentStep == _steps.length - 1 && _deliveryPhoto != null) {
-  //     return 'เสร็จสิ้นการส่ง';
-  //   } else {
-  //     return 'อัพเดทสถานะ';
-  //   }
-  // }
