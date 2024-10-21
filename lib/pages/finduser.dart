@@ -17,20 +17,14 @@ class _FindUserPageState extends ConsumerState<FindUserPage> {
   final Color mainColor = const Color(0xFF0A9830);
   final TextEditingController _searchController = TextEditingController();
   late Future<Map<String, dynamic>> userListData;
+  List<Map<String, dynamic>> allUsers = [];
   List<dynamic> filteredUsers = [];
 
   @override
   void initState() {
     super.initState();
     userListData = _fetchAllUser();
-    var phone = ref.read(authProvider).userData['phone'];
-    userListData.then((data) {
-      setState(() {
-        filteredUsers = data['data']['data'].where((user) {
-          return (user['role'] != 'Rider' && user['phone'] != phone);
-        }).toList();
-      });
-    });
+    _initializeUsers();
   }
 
   @override
@@ -43,25 +37,39 @@ class _FindUserPageState extends ConsumerState<FindUserPage> {
     return await ref.read(userService).users();
   }
 
+  void _initializeUsers() async {
+    var phone = ref.read(authProvider).userData['phone'];
+    var data = await userListData;
+    setState(() {
+      allUsers = List<Map<String, dynamic>>.from(data['data']['data']);
+      filteredUsers = allUsers.where((user) {
+        return (user['role'] != 'Rider' && user['phone'] != phone);
+      }).toList();
+    });
+  }
+
   void _filterUsers(String query) {
     var phone = ref.read(authProvider).userData['phone'];
-    userListData.then((data) {
-      setState(() {
-        filteredUsers = data['data']['data'].where((user) {
-          if (user['role'] != 'Rider' && user['phone'] != phone) {
-            return true;
-          }
-          if (query.isEmpty) {
-            return true; // แสดงทุกคนถ้าไม่มีการค้นหา
-          } else {
-            final fullname = user['fullname']?.toLowerCase() ?? '';
-            final phoneNumber = user['phone']?.toLowerCase() ?? '';
-            final lowercaseQuery = query.toLowerCase();
-            return fullname.contains(lowercaseQuery) ||
-                phoneNumber.contains(lowercaseQuery);
-          }
+    setState(() {
+      if (query.isEmpty) {
+        filteredUsers = allUsers.where((user) {
+          return (user['role'] != 'Rider' && user['phone'] != phone);
         }).toList();
-      });
+      } else {
+        filteredUsers = allUsers.where((user) {
+          if (user['role'] == 'Rider' || user['phone'] == phone) {
+            return false;
+          }
+          final fullname = user['fullname']?.toLowerCase() ?? '';
+          final phoneNumber = user['phone']?.toLowerCase() ?? '';
+          final userRole = user['role']?.toLowerCase() ?? '';
+          final lowercaseQuery = query.toLowerCase();
+
+          return fullname.contains(lowercaseQuery) ||
+              phoneNumber.contains(lowercaseQuery) ||
+              userRole.contains(lowercaseQuery);
+        }).toList();
+      }
     });
   }
 
