@@ -2,6 +2,7 @@
 
 import 'package:bidhood/components/cards/itemcardrider.dart';
 import 'package:bidhood/components/layouts/user.dart';
+import 'package:bidhood/hooks/oderlist.dart';
 import 'package:bidhood/services/order.dart';
 import 'package:bidhood/services/rider.dart';
 import 'package:flutter/material.dart';
@@ -19,22 +20,23 @@ class TaskListPage extends ConsumerStatefulWidget {
   ConsumerState<TaskListPage> createState() => _TaskListPageState();
 }
 
-class _TaskListPageState extends ConsumerState<TaskListPage> {
+class _TaskListPageState extends ConsumerState<TaskListPage>
+    with SingleTickerProviderStateMixin {
   int totals = 0;
+  int totalsHistory = 0;
   late dynamic orderList = null;
+  late dynamic riderHistoryList = null;
+  late TabController _tabController;
 
   Future<Map<String, dynamic>> _fetchOrderData() async {
     var user = ref.watch(authProvider).userData;
     var result = await ref
         .read(orderService)
         .getAllByLocation(user['location']['lat'], user['location']['long']);
-    final orders = (result['data']?['data'] as List)
-        .where((order) =>
-                order['status'] == 1 &&
-                (order['rider_goto_sender_distance'] * 1000) <=
-                    20
-            )
-        .toList();
+    final orders = (result['data']?['data'] as List).where((order) {
+      return order['status'] == 1 &&
+          (order['rider_goto_sender_distance'] * 1000) <= 20;
+    }).toList();
     setState(() {
       totals = orders.length;
     });
@@ -43,8 +45,21 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
 
   @override
   void initState() {
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      setState(() {
+        orderList = _fetchOrderData();
+        riderHistoryList = _fetchOrderRiderHistoryData();
+      });
+    });
     checkStatusAndLoadData();
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> checkStatusAndLoadData() async {
@@ -91,6 +106,8 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     if (acceptWork["statusCode"] != 200) {
       debugPrint('${acceptWork['data']}');
       debugPrint("รับงานไม่สำเร็จ");
+      AlertController.show("รับงานไม่สำเร็จ",
+          "${acceptWork['data']['message']}", TypeAlert.error);
       return;
     }
     debugPrint('${acceptWork['statusCode']}');
@@ -105,8 +122,140 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     }
   }
 
+  Future<Map<String, dynamic>> _fetchOrderRiderHistoryData() async {
+    try {
+      var result = await ref.read(orderService).getMeRider();
+      debugPrint('result: $result');
+
+      // ตรวจสอบโครงสร้างข้อมูลที่ได้
+      if (result != null &&
+          result['data'] != null &&
+          result['data']['data'] != null) {
+        final orders = result['data']['data'] as List;
+        setState(() {
+          totalsHistory = orders.length;
+        });
+      } else {
+        setState(() {
+          totalsHistory = 0;
+        });
+      }
+      return result;
+    } catch (e) {
+      debugPrint('Error fetching rider history: $e');
+      setState(() {
+        totalsHistory = 0;
+      });
+      return {
+        'data': {'data': []}
+      };
+    }
+  }
+
   void goToRealtime(id, orderId) {
     context.go('/realtime', extra: {'transactionID': id, 'orderID': orderId});
+  }
+
+  String _getTabTitle(int index) {
+    switch (index) {
+      case 0:
+        return 'งานที่ยังไม่รับ';
+      case 1:
+        return 'งานที่สำเร็จ';
+      default:
+        return '';
+    }
+  }
+
+  Widget _buildOrderList() {
+    return FutureBuilder<dynamic>(
+      future: orderList,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasData) {
+          final orderListData =
+              (snapshot.data?['data']?['data'] as List?)?.where((order) {
+                    return order['status'] == 1 &&
+                        (order['rider_goto_sender_distance'] * 1000) <= 20;
+                  }).toList() ??
+                  [];
+
+          if (orderListData.isEmpty) {
+            return _buildEmptyState();
+          }
+
+          return ListView.builder(
+            itemCount: orderListData.length,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            itemBuilder: (context, index) {
+              final task = orderListData[index];
+              return ItemCardRider(
+                orderId: task['order_id'],
+                rider_goto_sender_distance:
+                    task['rider_goto_sender_distance'].toDouble(),
+                pickupAddress: task['user']['address'],
+                deliveryAddress: task['receiver']['address'],
+                pickupImage: task['events'][0]['event_picture'],
+                onViewDetails: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (BuildContext context) {
+                      return DraggableScrollableSheet(
+                        initialChildSize: 0.9,
+                        minChildSize: 0.5,
+                        maxChildSize: 0.9,
+                        builder: (_, controller) {
+                          return ItemDetailsDrawer(
+                            transactionID: task['order_transaction_id'],
+                            orderId: task['order_id'],
+                            sender: task['user']['fullname'],
+                            receiver: task['receiver']['fullname'],
+                            receiverAddress: task['receiver']['address'],
+                            itemImages: (task['product_list'] as List<dynamic>)
+                                .map<String>((item) => item['image'].toString())
+                                .toList(),
+                            deliveryStatus: task['status'] ?? 0,
+                            des: (task['product_list'] as List<dynamic>)
+                                .map<String>(
+                                    (item) => item['description'].toString())
+                                .toList(),
+                            rider: 'You',
+                            deliveryDate: DateTime.now(),
+                            completionDate: null,
+                            isCompleted: task['is_order_complete'] ?? false,
+                            receiverLocation: LatLng(
+                              task['receiver']['location']['lat'].toDouble(),
+                              task['receiver']['location']['long'].toDouble(),
+                            ),
+                            senderLocation: LatLng(
+                              task['user']['location']['lat'].toDouble(),
+                              task['user']['location']['long'].toDouble(),
+                            ),
+                            userRole: ref.watch(authProvider).userData['role'],
+                            onAcceptJob: () async {
+                              debugPrint('Job accepted: ');
+                              if (task["order_transaction_id"] == null) {
+                                return;
+                              }
+                              await riderAcceptWork(task);
+                            },
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+              );
+            },
+          );
+        } else {
+          return _buildEmptyState();
+        }
+      },
+    );
   }
 
   @override
@@ -117,126 +266,48 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
       bodyWidget: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.only(
-                  top: 50, left: 16, right: 16, bottom: 8),
-              child: Row(
+            Container(
+              padding: const EdgeInsets.only(top: 50, left: 16, right: 16),
+              child: Column(
                 children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: TabBar(
+                      controller: _tabController,
+                      indicator: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.black,
                       ),
-                      child: Text(
-                        'รายการงานทั้งหมด ($totals)',
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 14),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      indicatorSize: TabBarIndicatorSize.tab,
+                      labelColor: Colors.white,
+                      unselectedLabelColor: Colors.black,
+                      tabs: [0, 1].map((index) {
+                        return Tab(text: _getTabTitle(index));
+                      }).toList(),
                     ),
                   ),
                 ],
               ),
             ),
             Expanded(
-              child: FutureBuilder<dynamic>(
-                future: orderList,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  } else if (snapshot.hasData) {
-                    final orderListData = (snapshot.data?['data']?['data']
-                                as List?)
-                            ?.where((order) =>
-                                order['status'] == 1 &&
-                                (order['rider_goto_sender_distance'] * 1000) <=
-                                    20)
-                            .toList() ??
-                        [];
-                    if (orderListData.isEmpty) {
-                      return _buildEmptyState();
-                    }
-                    return ListView.builder(
-                      itemCount: orderListData.length,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      itemBuilder: (context, index) {
-                        final task = orderListData[index];
-                        return ItemCardRider(
-                          orderId: task['order_id'],
-                          rider_goto_sender_distance:
-                              task['rider_goto_sender_distance'].toDouble(),
-                          pickupAddress: task['user']['address'],
-                          deliveryAddress: task['receiver']['address'],
-                          pickupImage: task['events'][0]['event_picture'],
-                          onViewDetails: () {
-                            showModalBottomSheet(
-                              context: context,
-                              isScrollControlled: true,
-                              backgroundColor: Colors.transparent,
-                              builder: (BuildContext context) {
-                                return DraggableScrollableSheet(
-                                  initialChildSize: 0.9,
-                                  minChildSize: 0.5,
-                                  maxChildSize: 0.9,
-                                  builder: (_, controller) {
-                                    return ItemDetailsDrawer(
-                                      transactionID:
-                                          task['order_transaction_id'],
-                                      orderId: task['order_id'],
-                                      sender: task['user']['fullname'],
-                                      receiver: task['receiver']['fullname'],
-                                      receiverAddress: task['receiver']
-                                          ['address'],
-                                      itemImages: (task['product_list']
-                                              as List<dynamic>)
-                                          .map<String>((item) =>
-                                              item['image'].toString())
-                                          .toList(),
-                                      deliveryStatus: task['status'] ?? 0,
-                                      des: (task['product_list']
-                                              as List<dynamic>)
-                                          .map<String>((item) =>
-                                              item['description'].toString())
-                                          .toList(),
-                                      rider: 'You',
-                                      deliveryDate: DateTime.now(),
-                                      completionDate: null,
-                                      receiverLocation: LatLng(
-                                        task['receiver']['location']['lat']
-                                            .toDouble(),
-                                        task['receiver']['location']['long']
-                                            .toDouble(),
-                                      ),
-                                      senderLocation: LatLng(
-                                        task['user']['location']['lat']
-                                            .toDouble(),
-                                        task['user']['location']['long']
-                                            .toDouble(),
-                                      ),
-                                      userRole: userRole,
-                                      onAcceptJob: () async {
-                                        debugPrint('Job accepted: ');
-                                        if (task["order_transaction_id"] ==
-                                            null) {
-                                          return;
-                                        }
-                                        await riderAcceptWork(task);
-                                      },
-                                    );
-                                  },
-                                );
-                              },
-                            );
-                          },
-                        );
-                      },
-                    );
-                  } else {
-                    return _buildEmptyState();
-                  }
-                },
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildOrderList(),
+                  Column(
+                    children: [
+                      riderHistoryList != null
+                          ? OrderListView(
+                              orderFuture: riderHistoryList,
+                              userRole: userRole,
+                            )
+                          : Container()
+                    ],
+                  )
+                ],
               ),
             ),
           ],

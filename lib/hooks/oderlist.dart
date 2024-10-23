@@ -107,7 +107,7 @@ class _OrderListViewState extends State<OrderListView> {
               itemImages: _getItemImages(order),
               deliveryStatus: order['status'] ?? 0,
               des: _getItemDescription(order),
-              rider: order['rider_id'],
+              rider: order['rider']['fullname'],
               deliveryDate: DateTime.now(),
               completionDate: null,
               senderLocation: LatLng(
@@ -119,6 +119,7 @@ class _OrderListViewState extends State<OrderListView> {
                 order['receiver']['location']['long'],
               ),
               userRole: widget.userRole,
+              isCompleted: order['is_order_complete'] ?? false,
             );
           },
         );
@@ -132,6 +133,7 @@ class _OrderListViewState extends State<OrderListView> {
             .toList() ??
         [];
   }
+
   List<String> _getItemDescription(Map<String, dynamic> order) {
     return (order['product_list'] as List?)
             ?.map<String>((item) => item['description'] as String)

@@ -91,8 +91,6 @@ class ItemCard extends StatelessWidget {
               if (rider != null && rider!.isNotEmpty) ...[
                 Text('Rider: $rider'),
                 const SizedBox(height: 8),
-                if (deliveryDate != null)
-                  Text('Delivery Date: ${deliveryDate?.toLocal()}'),
                 if (completionDate != null)
                   Text('Completion Date: ${completionDate!.toLocal()}'),
                 const SizedBox(height: 8),

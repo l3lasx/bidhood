@@ -61,11 +61,18 @@ class MapBoxState extends State<MapBox> {
 
   void focusUpdate() {
     _focusUpdateTimer = Timer(const Duration(seconds: 10), () {
-      debugPrint("Focus Update");
       if (widget.mapType == "rider") {
+        debugPrint("Focus Update");
         _mapController.move(widget.riderLocation, 16);
       }
     });
+  }
+
+  void focusRider() {
+    if (widget.mapType == "rider") {
+      debugPrint("Focus Update");
+      _mapController.move(widget.riderLocation, 16);
+    }
   }
 
   @override
@@ -154,15 +161,8 @@ class MapBoxState extends State<MapBox> {
                         FloatingActionButton(
                           heroTag: 'uniqueTag1',
                           mini: true,
-                          onPressed: zoomIn,
-                          child: const Icon(Icons.add),
-                        ),
-                        const SizedBox(height: 8),
-                        FloatingActionButton(
-                          heroTag: 'uniqueTag2',
-                          mini: true,
-                          onPressed: zoomOut,
-                          child: const Icon(Icons.remove),
+                          onPressed: focusRider,
+                          child: const Icon(Icons.gps_fixed),
                         ),
                       ],
                     ),
