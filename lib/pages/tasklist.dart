@@ -188,6 +188,11 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                                               item['image'].toString())
                                           .toList(),
                                       deliveryStatus: task['status'] ?? 0,
+                                      des: (task['product_list']
+                                              as List<dynamic>)
+                                          .map<String>((item) =>
+                                              item['description'].toString())
+                                          .toList(),
                                       rider: 'You',
                                       deliveryDate: DateTime.now(),
                                       completionDate: null,

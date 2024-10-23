@@ -76,6 +76,7 @@ class _OrderListViewState extends State<OrderListView> {
               itemImages: _getItemImages(order),
               deliveryStatus: order['status'] ?? 0,
               isCompleted: order['is_order_complete'] ?? false,
+              des: _getItemDescription(order),
               rider: order['rider']['fullname'] ?? '',
               deliveryDate: DateTime.now(),
               completionDate: null,
@@ -105,6 +106,7 @@ class _OrderListViewState extends State<OrderListView> {
               receiverAddress: order['receiver']['address'] ?? '',
               itemImages: _getItemImages(order),
               deliveryStatus: order['status'] ?? 0,
+              des: _getItemDescription(order),
               rider: order['rider_id'],
               deliveryDate: DateTime.now(),
               completionDate: null,
@@ -127,6 +129,12 @@ class _OrderListViewState extends State<OrderListView> {
   List<String> _getItemImages(Map<String, dynamic> order) {
     return (order['product_list'] as List?)
             ?.map<String>((item) => item['image'] as String)
+            .toList() ??
+        [];
+  }
+  List<String> _getItemDescription(Map<String, dynamic> order) {
+    return (order['product_list'] as List?)
+            ?.map<String>((item) => item['description'] as String)
             .toList() ??
         [];
   }
