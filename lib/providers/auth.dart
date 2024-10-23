@@ -3,9 +3,11 @@ import 'package:bidhood/main.dart';
 import 'package:bidhood/models/user/user_body_for_create.dart';
 import 'package:bidhood/models/user/user_body_for_login.dart';
 import 'package:bidhood/providers/dio.dart';
+import 'package:bidhood/services/user.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 final Dio _dio = Dio();
@@ -121,14 +123,45 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   void _navigateBasedOnRole(WidgetRef ref, String role) async {
-    if (role == 'User') {
-      ref.watch(goRouterProvider).go('/parcel');
-    } else if (role == 'Rider') {
-      ref.watch(goRouterProvider).go('/tasklist');
-    } else {
+    // update current location
+    try {
+      if (role == "User" || role == "Rider") {
+        await updateLocation(ref);
+      }
+      if (role == 'User') {
+        ref.watch(goRouterProvider).go('/parcel');
+      } else if (role == 'Rider') {
+        ref.watch(goRouterProvider).go('/tasklist');
+      } else {
+        ref.watch(goRouterProvider).go('/login');
+      }
+      debugPrint('UserDebug Role: $role');
+    } catch (err) {
       ref.watch(goRouterProvider).go('/login');
     }
-    debugPrint('UserDebug Role: $role');
+  }
+
+  Future<void> updateLocation(WidgetRef ref) async {
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      Map<String, dynamic> payload = {
+        "location": {"lat": position.latitude, "long": position.longitude}
+      };
+
+      var updateProfile = await ref.watch(userService).update(payload);
+      if (updateProfile['statusCode'] == 200) {
+        ref
+            .read(authProvider.notifier)
+            .updateUser(updateProfile['data']['data']);
+      }
+      debugPrint(
+          "Update current user position: ${position.latitude}, ${position.longitude}");
+    } catch (e) {
+      debugPrint("Error updating rider location: $e");
+    }
   }
 
   void _navigateToLogin() {

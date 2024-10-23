@@ -1,6 +1,9 @@
+// ignore_for_file: prefer_typing_uninitialized_variables
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/plugin_api.dart';
 import 'package:http/http.dart' as http;
@@ -12,13 +15,14 @@ class ItemDetailsDrawer extends StatefulWidget {
   final String receiver;
   final String receiverAddress;
   final List<String> itemImages;
-  final String deliveryStatus;
+  final int deliveryStatus;
   final String? rider;
   final DateTime deliveryDate;
   final DateTime? completionDate;
   final LatLng senderLocation;
   final LatLng receiverLocation;
   final String userRole;
+  final transactionID;
   // final LatLng riderLocation;
   final Function()? onAcceptJob;
   const ItemDetailsDrawer(
@@ -36,6 +40,7 @@ class ItemDetailsDrawer extends StatefulWidget {
       required this.receiverLocation,
       // required this.riderLocation,
       required this.userRole,
+      required this.transactionID,
       this.onAcceptJob});
 
   @override
@@ -47,7 +52,14 @@ class _ItemDetailsDrawerState extends State<ItemDetailsDrawer> {
   List<LatLng> _routePoints = [];
   double _distance = 0.0;
   bool _isLoading = true;
-
+  final List<String> _steps = [
+    '',
+    'รอไรเดอร์มารับสินค้า',
+    'ไรเดอร์รับงาน',
+    'ไรเดอร์เข้ารับพัสดุ',
+    'รับสินค้าแล้วกำลังเดินทาง',
+    'นำส่งสินค้าแล้ว',
+  ];
   @override
   void initState() {
     super.initState();
@@ -80,6 +92,13 @@ class _ItemDetailsDrawerState extends State<ItemDetailsDrawer> {
         _isLoading = false;
       });
     }
+  }
+
+  void goToRealtime() {
+    context.go('/realtime', extra: {
+      'transactionID': widget.transactionID,
+      'orderID': widget.orderId
+    });
   }
 
   @override
@@ -130,7 +149,7 @@ class _ItemDetailsDrawerState extends State<ItemDetailsDrawer> {
               _buildInfoRow('ผู้ส่ง', widget.sender),
               _buildInfoRow('ผู้รับ', widget.receiver),
               _buildInfoRow('ที่อยู่ผู้รับ', widget.receiverAddress),
-              _buildInfoRow('สถานะการจัดส่ง', widget.deliveryStatus),
+              _buildInfoRow('สถานะการจัดส่ง', _steps[widget.deliveryStatus]),
               if (widget.rider != null && widget.rider!.isNotEmpty) ...[
                 _buildInfoRow('ผู้จัดส่ง', widget.rider ?? ''),
                 _buildInfoRow(
@@ -259,6 +278,23 @@ class _ItemDetailsDrawerState extends State<ItemDetailsDrawer> {
                     ),
                     child: const Text(
                       'รับงาน',
+                      style: TextStyle(fontSize: 18, color: Colors.white),
+                    ),
+                  ),
+                ),
+              if (widget.userRole != 'Rider')
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      goToRealtime();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text(
+                      'ดูข้อมูลเรียวไทม์',
                       style: TextStyle(fontSize: 18, color: Colors.white),
                     ),
                   ),

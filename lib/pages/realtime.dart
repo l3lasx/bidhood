@@ -1,11 +1,13 @@
-// ignore_for_file: invalid_use_of_visible_for_testing_member, no_leading_underscores_for_local_identifiers, depend_on_referenced_packages, unnecessary_import
+// ignore_for_file: invalid_use_of_visible_for_testing_member, no_leading_underscores_for_local_identifiers, depend_on_referenced_packages, unnecessary_import, use_build_context_synchronously
 
 import 'dart:async';
 import 'package:bidhood/components/maproute/mapbox.dart';
+import 'package:bidhood/providers/auth.dart';
 import 'package:bidhood/providers/rider.dart';
 import 'package:bidhood/services/order.dart';
 import 'package:bidhood/services/rider.dart';
 import 'package:bidhood/services/upload.dart';
+import 'package:bidhood/services/user.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dropdown_alert/alert_controller.dart';
@@ -35,6 +37,8 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
   bool _disposed = false;
   Map<String, dynamic> routesMap = {};
   Map<String, dynamic> orderDetail = {};
+  Map<String, dynamic> currentWork = {};
+
   bool isLoading = true;
   Timer? _locationUpdateTimer;
   int _currentStep = 0;
@@ -76,7 +80,9 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
           if (mounted) {
             var data = event.data();
             notifier.update(data);
-            debugPrint("current data: $data");
+            setState(() {
+              currentWork = data!;
+            });
           }
         },
         onError: (error) => debugPrint("Listen failed: $error"),
@@ -89,7 +95,11 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
 
   void startLocationUpdates() {
     _locationUpdateTimer = Timer.periodic(const Duration(seconds: 10), (_) {
-      updateRiderLocation();
+      if (isRiderInWork()) {
+        updateRiderLocation();
+      } else {
+        debugPrint("อัพเดทตำแหน่ง:: ไม่ใช่ Rider ของงานนี้");
+      }
     });
   }
 
@@ -105,6 +115,17 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
           'Long': position.longitude,
         },
       });
+
+      Map<String, dynamic> payload = {
+        "location": {"lat": position.latitude, "long": position.longitude}
+      };
+
+      var updateProfile = await ref.watch(userService).update(payload);
+      if (updateProfile['statusCode'] == 200) {
+        ref
+            .read(authProvider.notifier)
+            .updateUser(updateProfile['data']['data']);
+      }
 
       debugPrint(
           "Rider location updated: ${position.latitude}, ${position.longitude}");
@@ -193,6 +214,11 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
 
   Future<Map<String, dynamic>> fetchOrderDetails() async {
     return await ref.read(orderService).getOrderByID(widget.orderID);
+  }
+
+  bool isRiderInWork() {
+    var currentUser = ref.read(authProvider).userData;
+    return (currentUser['user_id'] == currentWork['rider_id']);
   }
 
   Future<void> calculateRoutes() async {
@@ -286,7 +312,6 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
   Widget build(BuildContext context) {
     var data = ref.watch(riderProvider).data;
     var pointers = ref.watch(riderProvider).routePoints;
-
     return Scaffold(
         appBar: AppBar(
           backgroundColor: mainColor,
@@ -345,7 +370,6 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
   Widget buildMapBox(
       Map<String, dynamic> data, Map<String, dynamic>? pointers) {
     int status = int.tryParse(orderDetail['status']?.toString() ?? '') ?? 0;
-
     return MapBox(
       mapType: "rider",
       focusMapCenter: getLatLng(data['rider_location']),
@@ -552,23 +576,48 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
                 const SizedBox(height: 15),
                 _buildStepper(),
                 const SizedBox(height: 15),
-                if (_currentStep <= _steps.length - 1)
-                  SizedBox(
-                    width: MediaQuery.of(context).size.width,
-                    child: ElevatedButton(
-                      onPressed: _updateOrderStatus,
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        backgroundColor: Colors.green,
+                (isRiderInWork() && _currentStep <= _steps.length - 1)
+                    ? SizedBox(
+                        width: MediaQuery.of(context).size.width,
+                        child: ElevatedButton(
+                          onPressed: _updateOrderStatus,
+                          style: ElevatedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            backgroundColor: Colors.green,
+                          ),
+                          child: Text(_getButtonText()),
+                        ),
+                      )
+                    : GestureDetector(
+                        onTap: () {
+                          if (context.canPop()) {
+                            context.pop();
+                          } else {
+                            context.go("/parcel");
+                          }
+                        },
+                        child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.black,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.arrow_back,
+                                    color: Colors.white,
+                                  ),
+                                  SizedBox(
+                                    width: 8,
+                                  ),
+                                  Text(
+                                    "ย้อนกลับ",
+                                    style: TextStyle(color: Colors.white),
+                                  )
+                                ])),
                       ),
-                      child: Text(_getButtonText()),
-                    ),
-                  ),
-                // TextButton(
-                //     onPressed: () {
-                //       context.go('/tasklist');
-                //     },
-                //     child: const Text("back"))
               ],
             ),
           ),
