@@ -29,7 +29,11 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
         .read(orderService)
         .getAllByLocation(user['location']['lat'], user['location']['long']);
     final orders = (result['data']?['data'] as List)
-        .where((order) => order['status'] == 1)
+        .where((order) =>
+                order['status'] == 1 &&
+                (order['rider_goto_sender_distance'] * 1000) <=
+                    20
+            )
         .toList();
     setState(() {
       totals = orders.length;
@@ -142,11 +146,14 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   } else if (snapshot.hasData) {
-                    final orderListData =
-                        (snapshot.data?['data']?['data'] as List?)
-                                ?.where((order) => order['status'] == 1)
-                                .toList() ??
-                            [];
+                    final orderListData = (snapshot.data?['data']?['data']
+                                as List?)
+                            ?.where((order) =>
+                                order['status'] == 1 &&
+                                (order['rider_goto_sender_distance'] * 1000) <=
+                                    20)
+                            .toList() ??
+                        [];
                     if (orderListData.isEmpty) {
                       return _buildEmptyState();
                     }
@@ -159,7 +166,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                         return ItemCardRider(
                           orderId: task['order_id'],
                           rider_goto_sender_distance:
-                              task['rider_goto_sender_distance'],
+                              task['rider_goto_sender_distance'].toDouble(),
                           pickupAddress: task['user']['address'],
                           deliveryAddress: task['receiver']['address'],
                           pickupImage: task['events'][0]['event_picture'],
@@ -197,12 +204,16 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                                       deliveryDate: DateTime.now(),
                                       completionDate: null,
                                       receiverLocation: LatLng(
-                                        task['receiver']['location']['lat'],
-                                        task['receiver']['location']['long'],
+                                        task['receiver']['location']['lat']
+                                            .toDouble(),
+                                        task['receiver']['location']['long']
+                                            .toDouble(),
                                       ),
                                       senderLocation: LatLng(
-                                        task['user']['location']['lat'],
-                                        task['user']['location']['long'],
+                                        task['user']['location']['lat']
+                                            .toDouble(),
+                                        task['user']['location']['long']
+                                            .toDouble(),
                                       ),
                                       userRole: userRole,
                                       onAcceptJob: () async {

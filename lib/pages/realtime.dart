@@ -39,6 +39,8 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
   Map<String, dynamic> orderDetail = {};
   Map<String, dynamic> currentWork = {};
 
+  final GlobalKey<MapBoxState> mapBoxKey = GlobalKey<MapBoxState>();
+
   bool isLoading = true;
   Timer? _locationUpdateTimer;
   int _currentStep = 0;
@@ -97,6 +99,7 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
     _locationUpdateTimer = Timer.periodic(const Duration(seconds: 10), (_) {
       if (isRiderInWork()) {
         updateRiderLocation();
+        mapBoxKey.currentState?.focusUpdate();
       } else {
         debugPrint("อัพเดทตำแหน่ง:: ไม่ใช่ Rider ของงานนี้");
       }
@@ -372,6 +375,7 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
     int status = int.tryParse(orderDetail['status']?.toString() ?? '') ?? 0;
     return MapBox(
       mapType: "rider",
+      key: mapBoxKey,
       focusMapCenter: getLatLng(data['rider_location']),
       riderLocation: getLatLng(data['rider_location']),
       senderLocation: getLatLng(data['sender_location']),

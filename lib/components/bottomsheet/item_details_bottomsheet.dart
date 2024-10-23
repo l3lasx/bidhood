@@ -154,8 +154,8 @@ class _ItemDetailsDrawerState extends State<ItemDetailsDrawer> {
               _buildInfoRow('สถานะการจัดส่ง', _steps[widget.deliveryStatus]),
               if (widget.rider != null && widget.rider!.isNotEmpty) ...[
                 _buildInfoRow('ผู้จัดส่ง', widget.rider ?? ''),
-                _buildInfoRow(
-                    'วันที่จัดส่ง', widget.deliveryDate.toLocal().toString()),
+                // _buildInfoRow(
+                //     'วันที่จัดส่ง', widget.deliveryDate.toLocal().toString()),
                 if (widget.completionDate != null)
                   _buildInfoRow('วันที่จัดส่งเสร็จสิ้น',
                       widget.completionDate!.toLocal().toString()),
