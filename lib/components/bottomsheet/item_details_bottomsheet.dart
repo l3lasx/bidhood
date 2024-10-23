@@ -12,6 +12,7 @@ class ItemDetailsDrawer extends StatefulWidget {
   final String receiver;
   final String receiverAddress;
   final List<String> itemImages;
+  final List<String> des;
   final String deliveryStatus;
   final String? rider;
   final DateTime deliveryDate;
@@ -28,6 +29,7 @@ class ItemDetailsDrawer extends StatefulWidget {
       required this.receiver,
       required this.receiverAddress,
       required this.itemImages,
+      required this.des,
       required this.deliveryStatus,
       required this.rider,
       required this.deliveryDate,
@@ -141,37 +143,58 @@ class _ItemDetailsDrawerState extends State<ItemDetailsDrawer> {
               ],
               const SizedBox(height: 20),
               const Text(
-                'รูปภาพสินค้า',
+                'รายการสินค้า',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 10),
-              SizedBox(
-                height: 120,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: widget.itemImages.length,
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 10),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: CachedNetworkImage(
-                          imageUrl: widget.itemImages[index],
-                          width: 100,
-                          height: 100,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) =>
-                              const CircularProgressIndicator(),
-                          errorWidget: (context, url, error) =>
-                              const Icon(Icons.error),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                itemCount: widget.itemImages.length,
+                itemBuilder: (context, index) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Row(
+                      children: [
+                        // รูปภาพสินค้า
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: CachedNetworkImage(
+                            imageUrl: widget.itemImages[index],
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) =>
+                                const CircularProgressIndicator(),
+                            errorWidget: (context, url, error) =>
+                                const Icon(Icons.error),
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
+                        const SizedBox(width: 16),
+                        // รายละเอียดสินค้า
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.des[index],
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // จำนวนสินค้า
+                        Text(
+                          '1', // ตัวอย่างจำนวน, ควรใช้ข้อมูลจริงจาก API
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 20),
               const Text(

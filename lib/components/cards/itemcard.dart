@@ -6,6 +6,7 @@ class ItemCard extends StatelessWidget {
   final String receiver;
   final String receiverAddress;
   final List<String> itemImages;
+  final List<String> des;
   final String deliveryStatus;
   final String? rider;
   final DateTime? deliveryDate;
@@ -19,6 +20,7 @@ class ItemCard extends StatelessWidget {
     required this.receiver,
     required this.receiverAddress,
     required this.itemImages,
+    required this.des,
     required this.deliveryStatus,
     required this.rider,
     required this.deliveryDate,
