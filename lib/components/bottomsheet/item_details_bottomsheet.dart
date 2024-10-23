@@ -24,6 +24,7 @@ class ItemDetailsDrawer extends StatefulWidget {
   final LatLng receiverLocation;
   final String userRole;
   final transactionID;
+  final bool isCompleted;
   // final LatLng riderLocation;
   final Function()? onAcceptJob;
   const ItemDetailsDrawer(
@@ -43,6 +44,7 @@ class ItemDetailsDrawer extends StatefulWidget {
       // required this.riderLocation,
       required this.userRole,
       required this.transactionID,
+      required this.isCompleted,
       this.onAcceptJob});
 
   @override
@@ -153,7 +155,7 @@ class _ItemDetailsDrawerState extends State<ItemDetailsDrawer> {
               _buildInfoRow('ที่อยู่ผู้รับ', widget.receiverAddress),
               _buildInfoRow('สถานะการจัดส่ง', _steps[widget.deliveryStatus]),
               if (widget.rider != null && widget.rider!.isNotEmpty) ...[
-                _buildInfoRow('ผู้จัดส่ง', widget.rider ?? ''),
+                _buildInfoRow('ไรเดอร์', widget.rider ?? ''),
                 // _buildInfoRow(
                 //     'วันที่จัดส่ง', widget.deliveryDate.toLocal().toString()),
                 if (widget.completionDate != null)
@@ -287,42 +289,44 @@ class _ItemDetailsDrawerState extends State<ItemDetailsDrawer> {
                   ? const CircularProgressIndicator()
                   : _buildInfoRow(
                       'ระยะทาง', '${_distance.toStringAsFixed(2)} กิโลเมตร'),
-              if (widget.userRole == 'Rider')
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (widget.onAcceptJob != null) {
-                        widget.onAcceptJob!();
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: const Text(
-                      'รับงาน',
-                      style: TextStyle(fontSize: 18, color: Colors.white),
-                    ),
-                  ),
-                ),
-              if (widget.userRole != 'Rider' && widget.deliveryStatus >= 2)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      goToRealtime();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: const Text(
-                      'ดูข้อมูลเรียวไทม์',
-                      style: TextStyle(fontSize: 18, color: Colors.white),
+              if (!widget.isCompleted) ...[
+                if (widget.userRole == 'Rider')
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (widget.onAcceptJob != null) {
+                          widget.onAcceptJob!();
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text(
+                        'รับงาน',
+                        style: TextStyle(fontSize: 18, color: Colors.white),
+                      ),
                     ),
                   ),
-                ),
+                if (widget.userRole != 'Rider' && widget.deliveryStatus >= 2)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        goToRealtime();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text(
+                        'ดูข้อมูลเรียวไทม์',
+                        style: TextStyle(fontSize: 18, color: Colors.white),
+                      ),
+                    ),
+                  ),
+              ]
             ],
           ),
         );
