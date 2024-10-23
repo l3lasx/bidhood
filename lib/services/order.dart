@@ -67,6 +67,7 @@ class OrderService {
   Future<Map<String, dynamic>> getAllByLocation(double lat, double long) async {
     try {
       final api = config['endpoint'] + '/orders?lat=$lat&long=$long';
+      debugPrint("$api");
       var response = await dio.get(
         api,
         options: Options(headers: {'Content-Type': 'application/json'}),

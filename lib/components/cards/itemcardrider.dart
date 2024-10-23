@@ -22,6 +22,19 @@ class ItemCardRider extends StatelessWidget {
     required this.onViewDetails,
   });
 
+  String formatDistance(double distanceInKm) {
+    if (distanceInKm >= 1) {
+      return '${distanceInKm.toStringAsFixed(1)} km';
+    } else {
+      int meters = (distanceInKm * 1000).round();
+      if (meters < 1) {
+        int cm = (distanceInKm * 100000).round(); // แปลงเป็นเซนติเมตร
+        return '$cm cm';
+      }
+      return '$meters m';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -86,7 +99,7 @@ class ItemCardRider extends StatelessWidget {
                         children: [
                           const Text("ระยะทางไปหาผู้ส่ง",
                               style: TextStyle(fontSize: 14)),
-                          Text("$rider_goto_sender_distance km",
+                          Text(formatDistance(rider_goto_sender_distance),
                               style: const TextStyle(fontSize: 12))
                         ],
                       )

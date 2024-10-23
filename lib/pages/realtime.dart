@@ -39,6 +39,8 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
   Map<String, dynamic> orderDetail = {};
   Map<String, dynamic> currentWork = {};
 
+  final GlobalKey<MapBoxState> mapBoxKey = GlobalKey<MapBoxState>();
+
   bool isLoading = true;
   Timer? _locationUpdateTimer;
   int _currentStep = 0;
@@ -97,6 +99,7 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
     _locationUpdateTimer = Timer.periodic(const Duration(seconds: 10), (_) {
       if (isRiderInWork()) {
         updateRiderLocation();
+        mapBoxKey.currentState?.focusUpdate();
       } else {
         debugPrint("อัพเดทตำแหน่ง:: ไม่ใช่ Rider ของงานนี้");
       }
@@ -372,6 +375,7 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
     int status = int.tryParse(orderDetail['status']?.toString() ?? '') ?? 0;
     return MapBox(
       mapType: "rider",
+      key: mapBoxKey,
       focusMapCenter: getLatLng(data['rider_location']),
       riderLocation: getLatLng(data['rider_location']),
       senderLocation: getLatLng(data['sender_location']),
@@ -442,14 +446,23 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
               _buildInfoSection(
                   'ผู้ส่ง',
                   orderDetail['user']?['fullname'] ?? 'N/A',
-                  orderDetail['user']?['address'] ?? 'N/A',
+                  'ที่อยู่ ${orderDetail['user']?['address']}' ?? 'N/A',
                   Icons.person),
               const SizedBox(height: 20),
               _buildInfoSection(
                   'ผู้รับ',
                   orderDetail['receiver']?['fullname'] ?? 'N/A',
-                  orderDetail['receiver']?['address'] ?? 'N/A',
+                  'ที่อยู่ ${orderDetail['receiver']?['address']}' ?? 'N/A',
                   Icons.person_outline),
+              const SizedBox(height: 20),
+              if (!isRiderInWork() && orderDetail['rider_id'] != null) ...[
+                _buildInfoSection(
+                    'ไรเดอร์',
+                    orderDetail['rider']?['fullname'] ?? 'N/A',
+                    'ป้ายทะเบียน ${orderDetail['rider']?['car_plate']}' ??
+                        'N/A',
+                    Icons.motorcycle)
+              ],
               const SizedBox(height: 20),
               const Text('สินค้าทั้งหมด :',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
@@ -487,8 +500,10 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(name, style: const TextStyle(fontSize: 16)),
-                Text('ที่อยู่ $address',
-                    style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+                if (address.isNotEmpty) ...[
+                  Text(address,
+                      style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+                ]
               ],
             ),
           ),

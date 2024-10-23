@@ -27,10 +27,10 @@ class MapBox extends StatefulWidget {
       required this.noteHint});
 
   @override
-  State<MapBox> createState() => _MapBoxState();
+  State<MapBox> createState() => MapBoxState();
 }
 
-class _MapBoxState extends State<MapBox> {
+class MapBoxState extends State<MapBox> {
   late MapController _mapController;
   late MapOptions _options;
   Timer? _focusUpdateTimer;
@@ -60,14 +60,11 @@ class _MapBoxState extends State<MapBox> {
   }
 
   void focusUpdate() {
-    _focusUpdateTimer?.cancel();
     _focusUpdateTimer = Timer(const Duration(seconds: 10), () {
       debugPrint("Focus Update");
-      setState(() {
-        if (widget.mapType == "rider") {
-          _mapController.move(widget.riderLocation, 16);
-        }
-      });
+      if (widget.mapType == "rider") {
+        _mapController.move(widget.riderLocation, 16);
+      }
     });
   }
 
@@ -192,7 +189,7 @@ class _MapBoxState extends State<MapBox> {
                         color: Colors.blue))
               ])),
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(10),
             child: Center(
               child: Text(widget.noteHint),
             ),
