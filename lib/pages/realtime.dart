@@ -446,20 +446,21 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
               _buildInfoSection(
                   'ผู้ส่ง',
                   orderDetail['user']?['fullname'] ?? 'N/A',
-                  orderDetail['user']?['address'] ?? 'N/A',
+                  'ที่อยู่ ${orderDetail['user']?['address']}' ?? 'N/A',
                   Icons.person),
               const SizedBox(height: 20),
               _buildInfoSection(
                   'ผู้รับ',
                   orderDetail['receiver']?['fullname'] ?? 'N/A',
-                  orderDetail['receiver']?['address'] ?? 'N/A',
+                  'ที่อยู่ ${orderDetail['receiver']?['address']}' ?? 'N/A',
                   Icons.person_outline),
               const SizedBox(height: 20),
               if (!isRiderInWork() && orderDetail['rider_id'] != null) ...[
                 _buildInfoSection(
                     'ไรเดอร์',
                     orderDetail['rider']?['fullname'] ?? 'N/A',
-                    '',
+                    'ป้ายทะเบียน ${orderDetail['rider']?['car_plate']}' ??
+                        'N/A',
                     Icons.motorcycle)
               ],
               const SizedBox(height: 20),
@@ -500,7 +501,7 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
               children: [
                 Text(name, style: const TextStyle(fontSize: 16)),
                 if (address.isNotEmpty) ...[
-                  Text('ที่อยู่ $address',
+                  Text(address,
                       style: TextStyle(fontSize: 16, color: Colors.grey[600])),
                 ]
               ],
