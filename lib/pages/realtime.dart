@@ -455,6 +455,14 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
                   orderDetail['receiver']?['address'] ?? 'N/A',
                   Icons.person_outline),
               const SizedBox(height: 20),
+              if (!isRiderInWork() && orderDetail['rider_id'] != null) ...[
+                _buildInfoSection(
+                    'ไรเดอร์',
+                    orderDetail['rider']?['fullname'] ?? 'N/A',
+                    '',
+                    Icons.motorcycle)
+              ],
+              const SizedBox(height: 20),
               const Text('สินค้าทั้งหมด :',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
@@ -491,8 +499,10 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(name, style: const TextStyle(fontSize: 16)),
-                Text('ที่อยู่ $address',
-                    style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+                if (address.isNotEmpty) ...[
+                  Text('ที่อยู่ $address',
+                      style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+                ]
               ],
             ),
           ),
