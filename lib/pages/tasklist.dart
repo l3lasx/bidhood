@@ -175,6 +175,8 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                                   maxChildSize: 0.9,
                                   builder: (_, controller) {
                                     return ItemDetailsDrawer(
+                                      transactionID:
+                                          task['order_transaction_id'],
                                       orderId: task['order_id'],
                                       sender: task['user']['fullname'],
                                       receiver: task['receiver']['fullname'],
@@ -185,12 +187,12 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                                           .map<String>((item) =>
                                               item['image'].toString())
                                           .toList(),
+                                      deliveryStatus: task['status'] ?? 0,
                                       des: (task['product_list']
                                               as List<dynamic>)
                                           .map<String>((item) =>
                                               item['description'].toString())
                                           .toList(),
-                                      deliveryStatus: task['status'].toString(),
                                       rider: 'You',
                                       deliveryDate: DateTime.now(),
                                       completionDate: null,

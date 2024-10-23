@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -31,7 +33,7 @@ class MapBox extends StatefulWidget {
 class _MapBoxState extends State<MapBox> {
   late MapController _mapController;
   late MapOptions _options;
-
+  Timer? _focusUpdateTimer;
   @override
   void initState() {
     super.initState();
@@ -40,6 +42,9 @@ class _MapBoxState extends State<MapBox> {
       center: widget.focusMapCenter,
       zoom: 16,
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      focusUpdate();
+    });
   }
 
   void zoomIn() {
@@ -54,9 +59,22 @@ class _MapBoxState extends State<MapBox> {
     _mapController.move(_mapController.center, newZoom);
   }
 
+  void focusUpdate() {
+    _focusUpdateTimer?.cancel();
+    _focusUpdateTimer = Timer(const Duration(seconds: 10), () {
+      debugPrint("Focus Update");
+      setState(() {
+        if (widget.mapType == "rider") {
+          _mapController.move(widget.riderLocation, 16);
+        }
+      });
+    });
+  }
+
   @override
   void dispose() {
     super.dispose();
+    _focusUpdateTimer?.cancel();
   }
 
   @override

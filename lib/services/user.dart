@@ -66,7 +66,6 @@ class UserService {
   Future<Map<String, dynamic>> update(Map<String, dynamic> data) async {
     try {
       final api = config['endpoint'] + '/auth/me';
-      debugPrint(api);
       var response = await dio.put(
         api,
         data: data,

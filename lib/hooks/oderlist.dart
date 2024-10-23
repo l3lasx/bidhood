@@ -53,6 +53,12 @@ class _OrderListViewState extends State<OrderListView> {
   }
 
   Widget _buildOrderList(BuildContext context, List orderListData) {
+    orderListData.sort((a, b) {
+      DateTime dateA = DateTime.parse(a['created_at']);
+      DateTime dateB = DateTime.parse(b['created_at']);
+      return dateB.compareTo(dateA); // เรียงจากใหม่ไปเก่า (DESC)
+    });
+
     return Expanded(
       child: ListView.builder(
         itemCount: orderListData.length,
@@ -68,8 +74,9 @@ class _OrderListViewState extends State<OrderListView> {
               receiver: order['receiver']['fullname'] ?? '',
               receiverAddress: order['receiver']['address'] ?? '',
               itemImages: _getItemImages(order),
+              deliveryStatus: order['status'] ?? 0,
+              isCompleted: order['is_order_complete'] ?? false,
               des: _getItemDescription(order),
-              deliveryStatus: 'Pending',
               rider: order['rider']['fullname'] ?? '',
               deliveryDate: DateTime.now(),
               completionDate: null,
@@ -92,13 +99,14 @@ class _OrderListViewState extends State<OrderListView> {
           maxChildSize: 0.95,
           builder: (_, controller) {
             return ItemDetailsDrawer(
+              transactionID: order['order_transaction_id'],
               orderId: order['order_id'] ?? '',
               sender: order['user']['fullname'] ?? '',
               receiver: order['receiver']['fullname'] ?? '',
               receiverAddress: order['receiver']['address'] ?? '',
               itemImages: _getItemImages(order),
+              deliveryStatus: order['status'] ?? 0,
               des: _getItemDescription(order),
-              deliveryStatus: 'Pending',
               rider: order['rider_id'],
               deliveryDate: DateTime.now(),
               completionDate: null,
