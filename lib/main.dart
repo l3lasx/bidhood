@@ -82,7 +82,7 @@ final GoRouter router = GoRouter(
             GoRoute(
               path: 'groupmap',
               builder: (BuildContext context, GoRouterState state) {
-                return const GroupMapPage();
+                return GroupMapPage();
               },
             ),
           ],
@@ -111,7 +111,7 @@ final GoRouter router = GoRouter(
             GoRoute(
               path: 'groupmap',
               builder: (BuildContext context, GoRouterState state) {
-                return const GroupMapPage();
+                return GroupMapPage();
               },
             ),
           ],
