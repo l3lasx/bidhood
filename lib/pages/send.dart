@@ -53,66 +53,82 @@ class _SendPageState extends ConsumerState<SendPage> {
     final userRole = ref.watch(authProvider).userData['role'];
     return UserLayout(
       key: UniqueKey(),
-      bodyWidget: Positioned(
-          top: 50,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: SafeArea(
-            child: SizedBox(
-              width: double.infinity,
-              height: MediaQuery.of(context).size.height * 0.7,
-              child: Column(
-                children: [
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        ElevatedButton(
-                          onPressed: () {
-                            // ใส่การทำงานของปุ่มที่ 1 ตรงนี้
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black,
+      bodyWidget: Stack(
+        children: [
+          Positioned(
+            top: 50,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: SafeArea(
+              child: SizedBox(
+                width: double.infinity,
+                height: MediaQuery.of(context).size.height * 0.7,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          ElevatedButton(
+                            onPressed: () {
+                              // ใส่การทำงานของปุ่มที่ 1 ตรงนี้
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.black,
+                            ),
+                            child: Text(
+                              'รายการจัดส่งทั้งหมด ($totals)',
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 14),
+                            ),
                           ),
-                          child: Text(
-                            'รายการจัดส่งทั้งหมด ($totals)',
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 14),
+                          ElevatedButton(
+                            onPressed: () {
+                              context
+                                  .push('/send/finduser'); // ใช้เส้นทางที่ถูกต้อง
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF0A9876),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.add, color: Colors.white),
+                                SizedBox(width: 2),
+                                Text('สร้างรายการ',
+                                    style: TextStyle(
+                                        color: Colors.white, fontSize: 14)),
+                              ],
+                            ),
                           ),
-                        ),
-                        ElevatedButton(
-                          onPressed: () {
-                            context
-                                .push('/send/finduser'); // ใช้เส้นทางที่ถูกต้อง
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF0A9876),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.add, color: Colors.white),
-                              SizedBox(width: 2),
-                              Text('สร้างรายการ',
-                                  style: TextStyle(
-                                      color: Colors.white, fontSize: 14)),
-                            ],
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  OrderListView(
-                    orderFuture: orderList,
-                    userRole: userRole,
-                  )
-                ],
+                    OrderListView(
+                      orderFuture: orderList,
+                      userRole: userRole,
+                    )
+                  ],
+                ),
               ),
             ),
-          )),
+          ),
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton(
+              onPressed: () {
+                context.push('/groupmap', extra: {'transactionID': '', 'orderID': ''});
+              },
+              backgroundColor: const Color(0xFF0A9876),
+              child: const Icon(Icons.map, color: Colors.white),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
