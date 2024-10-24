@@ -106,7 +106,7 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
   }
 
   void startLocationUpdates() {
-    _locationUpdateTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+    _locationUpdateTimer = Timer.periodic(const Duration(seconds: 3), (_) {
       if (isRiderInWork()) {
         updateRiderLocation();
         mapBoxKey.currentState?.focusUpdate();
