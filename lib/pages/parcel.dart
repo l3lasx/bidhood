@@ -87,7 +87,7 @@ class _ParcelPageState extends ConsumerState<ParcelPage> {
           bottom: 16,
           child: FloatingActionButton(
             onPressed: () {
-              context.push('/parcel/groupmap', extra: {'transactionID': '', 'orderID': ''});
+              context.push('/parcel/groupmap');
             },
             backgroundColor: const Color(0xFF0A9876),
             child: const Icon(Icons.map, color: Colors.white),

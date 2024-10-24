@@ -82,11 +82,7 @@ final GoRouter router = GoRouter(
             GoRoute(
               path: 'groupmap',
               builder: (BuildContext context, GoRouterState state) {
-                final Map<String, dynamic> extra = state.extra as Map<String, dynamic>;
-                return GroupMapPage(
-                  transactionID: extra['transactionID'] as String,
-                  orderID: extra['orderID'] as String,
-                );
+                return const GroupMapPage();
               },
             ),
           ],
@@ -115,11 +111,7 @@ final GoRouter router = GoRouter(
             GoRoute(
               path: 'groupmap',
               builder: (BuildContext context, GoRouterState state) {
-                final Map<String, dynamic> extra = state.extra as Map<String, dynamic>;
-                return GroupMapPage(
-                  transactionID: extra['transactionID'] as String,
-                  orderID: extra['orderID'] as String,
-                );
+                return const GroupMapPage();
               },
             ),
           ],
@@ -185,8 +177,9 @@ class ScaffoldWithNavBar extends StatelessWidget {
   static int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.path;
     if (location.startsWith('/parcel')) return 0;
-    if (location.startsWith('/send') || location.startsWith('/send/finduser') || location.startsWith('/send/groupmap'))
-      return 1;
+    if (location.startsWith('/send') ||
+        location.startsWith('/send/finduser') ||
+        location.startsWith('/send/groupmap')) return 1;
     if (location.startsWith('/profile')) return 2;
     return 0;
   }

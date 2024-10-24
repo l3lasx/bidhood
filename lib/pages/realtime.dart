@@ -106,7 +106,7 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
   }
 
   void startLocationUpdates() {
-    _locationUpdateTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+    _locationUpdateTimer = Timer.periodic(const Duration(seconds: 3), (_) {
       if (isRiderInWork()) {
         updateRiderLocation();
         mapBoxKey.currentState?.focusUpdate();
@@ -603,12 +603,6 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                    _currentStep < _steps.length
-                        ? _steps[_currentStep]
-                        : "จัดส่งสำเร็จแล้ว !",
-                    style: const TextStyle(fontSize: 16, color: Colors.green)),
-                const SizedBox(height: 15),
                 _buildStepper(),
                 const SizedBox(height: 15),
                 (isRiderInWork() && _currentStep <= _steps.length - 1)

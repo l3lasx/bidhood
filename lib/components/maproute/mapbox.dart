@@ -60,7 +60,7 @@ class MapBoxState extends State<MapBox> {
   }
 
   void focusUpdate() {
-    _focusUpdateTimer = Timer(const Duration(seconds: 10), () {
+    _focusUpdateTimer = Timer(const Duration(seconds: 3), () {
       if (widget.mapType == "rider") {
         debugPrint("Focus Update");
         _mapController.move(widget.riderLocation, 16);
