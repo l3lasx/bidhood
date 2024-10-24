@@ -36,7 +36,7 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.8, // Fixed height
+      height: MediaQuery.of(context).size.height * 0.7, // Fixed height
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
@@ -99,7 +99,7 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
                     ),
                     const SizedBox(height: 20),
                     Container(
-                      height: 280,
+                      height: 250,
                       width: double.infinity,
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey),
@@ -142,7 +142,7 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
                       ),
                       keyboardType: TextInputType.number,
                     )*/
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 5),
                     ElevatedButton.icon(
                       onPressed: () {
                         if (_image == null ||

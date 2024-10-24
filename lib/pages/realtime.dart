@@ -439,7 +439,7 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
 
   Widget buildInfoBox() {
     return Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.only(top: 0, left: 20, right: 20),
         child: Container(
             width: MediaQuery.of(context).size.width,
             decoration: BoxDecoration(

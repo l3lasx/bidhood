@@ -122,12 +122,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     Map<String, dynamic> payload = {
       "phone": _phoneController.text,
       "fullname": _fullNameController.text,
-      "address": _addressController.text,
     };
     
     // เพิ่ม car_plate เข้าไปใน payload เฉพาะเมื่อเป็น Rider
     if (ref.read(authProvider).userData['role'] == 'Rider') {
       payload["car_plate"] = _carplateController.text;
+    } else {
+      // เพิ่ม address เข้าไปใน payload เฉพาะเมื่อไม่ใช่ Rider
+      payload["address"] = _addressController.text;
     }
     
     var updateProfile = await ref.watch(userService).update(payload);
@@ -227,7 +229,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                   Expanded(
                                     child: ElevatedButton.icon(
                                       onPressed: () {
-                                        // ใส่การทำงานของปุ่มที่ 1 ตรงนี้
+                                        // ใส่การทำงานขอปุ่มที่ 1 ตรงนี้
                                         chooseImage();
                                       },
                                       style: ElevatedButton.styleFrom(
@@ -352,30 +354,33 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                 ),
                               ],
                               const SizedBox(height: 16),
-                              TextFormField(
-                                controller: _addressController,
-                                decoration: InputDecoration(
-                                  labelText: 'ที่อยู่',
-                                  border: const OutlineInputBorder(),
-                                  enabledBorder: const OutlineInputBorder(
-                                    borderSide:
-                                        BorderSide(color: Colors.grey),
+                              // แสดง field ที่อยู่เฉพาะเมื่อไม่ใช่ Rider
+                              if (!isRider) ...[
+                                TextFormField(
+                                  controller: _addressController,
+                                  decoration: InputDecoration(
+                                    labelText: 'ที่อยู่',
+                                    border: const OutlineInputBorder(),
+                                    enabledBorder: const OutlineInputBorder(
+                                      borderSide:
+                                          BorderSide(color: Colors.grey),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                          color: mainColor, width: 2.0),
+                                    ),
+                                    floatingLabelStyle:
+                                        TextStyle(color: mainColor),
                                   ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderSide: BorderSide(
-                                        color: mainColor, width: 2.0),
-                                  ),
-                                  floatingLabelStyle:
-                                      TextStyle(color: mainColor),
+                                  maxLines: 3,
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'กรุณากรอกที่อยู่';
+                                    }
+                                    return null;
+                                  },
                                 ),
-                                maxLines: 3, // เพิ่มความสูงของ field ที่อยู่
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'กรุณากรอกที่อยู่';
-                                  }
-                                  return null;
-                                },
-                              ),
+                              ],
                               const SizedBox(height: 16),
                               SizedBox(
                                 width: double
