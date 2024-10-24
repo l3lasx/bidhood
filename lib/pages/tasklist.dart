@@ -17,6 +17,9 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bidhood/providers/auth.dart';
 import 'package:flutter_dropdown_alert/alert_controller.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:bidhood/services/user.dart';
+import 'package:flutter/services.dart';
 
 class TaskListPage extends ConsumerStatefulWidget {
   const TaskListPage({super.key});
@@ -35,6 +38,8 @@ class _TaskListPageState extends ConsumerState<TaskListPage>
   StreamSubscription? subscription;
   late Stream<QuerySnapshot> transactionStream;
   bool _mounted = true;
+  Timer? _locationUpdateTimer;
+  Position? _currentPosition;
 
   @override
   void initState() {
@@ -43,6 +48,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage>
     _tabController.addListener(_handleTabChange);
     
     _initializeData();
+    checkLocationPermission();
   }
 
   void _initializeData() {
@@ -100,18 +106,18 @@ class _TaskListPageState extends ConsumerState<TaskListPage>
     try {
       var user = ref.watch(authProvider).userData;
       var result = await ref.read(orderService).getAllByLocation(
-        user['location']['lat'],
-        user['location']['long']
+        _currentPosition?.latitude ?? user['location']['lat'],
+        _currentPosition?.longitude ?? user['location']['long']
       );
       
       if (!_mounted) return result;
       
-      // คำนวณระยะทางใหม่สำหรับแต่ละ order
+      // Calculate distances using current position
       if (result['data']?['data'] != null) {
         var orders = result['data']['data'] as List;
         for (var order in orders) {
-          double riderLat = user['location']['lat'];
-          double riderLong = user['location']['long'];
+          double riderLat = _currentPosition?.latitude ?? user['location']['lat'];
+          double riderLong = _currentPosition?.longitude ?? user['location']['long'];
           double senderLat = order['user']['location']['lat'];
           double senderLong = order['user']['location']['long'];
 
@@ -446,6 +452,100 @@ class _TaskListPageState extends ConsumerState<TaskListPage>
     _tabController.removeListener(_handleTabChange);
     _tabController.dispose();
     subscription?.cancel();
+    _locationUpdateTimer?.cancel();
     super.dispose();
+  }
+
+  void startLocationUpdates() {
+    _locationUpdateTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
+      await updateRiderLocation();
+      // Refresh order list to recalculate distances
+      _refreshData();
+    });
+  }
+
+  Future<void> updateRiderLocation() async {
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied || 
+          permission == LocationPermission.deniedForever) {
+        throw Exception("Location permission denied");
+      }
+
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      // Store current position
+      setState(() {
+        _currentPosition = position;
+      });
+
+      Map<String, dynamic> payload = {
+        "location": {"lat": position.latitude, "long": position.longitude}
+      };
+
+      var updateProfile = await ref.watch(userService).update(payload);
+      if (updateProfile['statusCode'] == 200) {
+        ref
+            .read(authProvider.notifier)
+            .updateUser(updateProfile['data']['data']);
+      }
+
+      debugPrint(
+          "Rider location updated: ${position.latitude}, ${position.longitude}");
+    } catch (e) {
+      debugPrint("Error updating rider location: $e");
+      if (e.toString().contains("Location permission denied")) {
+        checkLocationPermission();
+      }
+    }
+  }
+
+  Future<void> checkLocationPermission() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // ตรวจสอบว่า location service เปิดอยู่หรือไม่
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      AlertController.show(
+        "Location Service ปิดอยู่", 
+        "กรุณาเปิด Location Service เพื่อใช้งาน", 
+        TypeAlert.warning
+      );
+      SystemNavigator.pop(); // ออกจากแอป
+      return;
+    }
+
+    // ตรวจสอบ permission
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      // ถ้ายังไม่เคยขอ permission ให้ขอ
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        AlertController.show(
+          "ไม่ได้รับอนุญาต", 
+          "ไม่สามารถเข้าถึงตำแหน่งได้เนื่องจากไม่ได้รับอนุญาต", 
+          TypeAlert.error
+        );
+        SystemNavigator.pop(); // ออกจากแอป
+        return;
+      }
+    }
+
+    // ถ้าถูก denied forever
+    if (permission == LocationPermission.deniedForever) {
+      AlertController.show(
+        "ไม่ได้รับอนุญาต", 
+        "กรุณาเปิดการอนุญาตการเข้าถึงตำแหน่งในการตั้งค่า", 
+        TypeAlert.error
+      );
+      SystemNavigator.pop(); // ออกจากแอป
+      return;
+    }
+
+    // ถ้าได้รับอนุญาตแล้ว เริ่มการอัพเดทตำแหน่ง
+    startLocationUpdates();
   }
 }
