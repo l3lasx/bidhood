@@ -134,14 +134,14 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    TextField(
+                    /*TextField(
                       controller: _quantityController,
                       decoration: const InputDecoration(
                         labelText: 'จำนวน',
                         border: OutlineInputBorder(),
                       ),
                       keyboardType: TextInputType.number,
-                    ),
+                    )*/
                     const SizedBox(height: 20),
                     ElevatedButton.icon(
                       onPressed: () {

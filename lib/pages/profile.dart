@@ -422,7 +422,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              SizedBox(
+                              /*SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton.icon(
                                   onPressed: () async {
@@ -461,7 +461,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                     style: TextStyle(fontSize: 16),
                                   ),
                                 ),
-                              ),
+                              ),*/
                             ],
                           ),
                         ),

@@ -147,17 +147,23 @@ class UserLayout extends ConsumerWidget {
             padding: const EdgeInsets.only(left: 16, right: 16, top: 8),
             child: Row(
               children: [
-                const Icon(
-                  Icons.location_on,
-                  color: Colors.white,
-                  size: 20,
-                ),
-                const SizedBox(width: 2),
-                Text(
-                  userData['address'] ?? '',
-                  style: const TextStyle(
+                if (!isRider)
+                  const Icon(
+                    Icons.location_on,
                     color: Colors.white,
-                    fontSize: 16,
+                    size: 20,
+                  ),
+                if (!isRider)
+                  const SizedBox(width: 2),
+                Expanded(
+                  child: Text(
+                    isRider ? 'Rider' : (userData['address'] ?? ''),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ),
               ],

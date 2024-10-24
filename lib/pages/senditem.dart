@@ -279,7 +279,7 @@ class _SendItemPageState extends ConsumerState<SendItemPage> {
                                           child: Text(item['details']),
                                         ),
                                       ),
-                                      Text('จำนวน: ${item['quantity']}'),
+                                      //Text('จำนวน: ${item['quantity']}'),
                                       IconButton(
                                         icon: const Icon(
                                             Icons.remove_circle_outline,
@@ -303,7 +303,10 @@ class _SendItemPageState extends ConsumerState<SendItemPage> {
                     ),
                   ] else if (_currentStep == 1) ...[
                     Container(
-                      color: Colors.white,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                       padding: const EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -325,7 +328,6 @@ class _SendItemPageState extends ConsumerState<SendItemPage> {
                               File(_image!.path),
                               height: 200,
                               width: double.infinity,
-                              fit: BoxFit.cover,
                             )
                           else
                             Container(
@@ -335,12 +337,6 @@ class _SendItemPageState extends ConsumerState<SendItemPage> {
                                 child: Text('ไม่มีรูปภาพ'),
                               ),
                             ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'หมายเหตุ: คุณต้องถ่ายรูปเพื่อดำเนินการต่อ',
-                            style: TextStyle(
-                                color: Colors.red, fontStyle: FontStyle.italic),
-                          ),
                         ],
                       ),
                     ),
