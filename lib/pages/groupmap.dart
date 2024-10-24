@@ -7,14 +7,9 @@ import 'dart:async';
 import 'dart:math';
 
 class GroupMapPage extends ConsumerStatefulWidget {
-  final String transactionID;
-  final String orderID;
-
   const GroupMapPage({
-    Key? key,
-    required this.transactionID,
-    required this.orderID,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   ConsumerState<GroupMapPage> createState() => _GroupMapPageState();
@@ -63,8 +58,10 @@ class _GroupMapPageState extends ConsumerState<GroupMapPage> {
 
   void _updateRiderPositions() {
     for (int i = 0; i < _riderPositions.length; i++) {
-      double lat = _riderPositions[i].latitude + (_random.nextDouble() - 0.5) * 0.001;
-      double lng = _riderPositions[i].longitude + (_random.nextDouble() - 0.5) * 0.001;
+      double lat =
+          _riderPositions[i].latitude + (_random.nextDouble() - 0.5) * 0.001;
+      double lng =
+          _riderPositions[i].longitude + (_random.nextDouble() - 0.5) * 0.001;
       _riderPositions[i] = LatLng(lat, lng);
     }
   }
@@ -139,8 +136,10 @@ class _GroupMapPageState extends ConsumerState<GroupMapPage> {
 
   LatLng _calculateMapCenter() {
     double sumLat = 0, sumLng = 0;
-    int totalPoints = _riderPositions.length + _senderPositions.length + _receiverPositions.length;
-    
+    int totalPoints = _riderPositions.length +
+        _senderPositions.length +
+        _receiverPositions.length;
+
     for (var pos in _riderPositions + _senderPositions + _receiverPositions) {
       sumLat += pos.latitude;
       sumLng += pos.longitude;
@@ -157,7 +156,8 @@ class _GroupMapPageState extends ConsumerState<GroupMapPage> {
         width: 40.0,
         height: 40.0,
         point: pos,
-        builder: (ctx) => const Icon(Icons.person_pin_circle, color: Colors.blue, size: 30),
+        builder: (ctx) =>
+            const Icon(Icons.person_pin_circle, color: Colors.blue, size: 30),
       ));
     }
 
@@ -166,7 +166,8 @@ class _GroupMapPageState extends ConsumerState<GroupMapPage> {
         width: 40.0,
         height: 40.0,
         point: pos,
-        builder: (ctx) => const Icon(Icons.location_on, color: Colors.red, size: 30),
+        builder: (ctx) =>
+            const Icon(Icons.location_on, color: Colors.red, size: 30),
       ));
     }
 
@@ -175,7 +176,8 @@ class _GroupMapPageState extends ConsumerState<GroupMapPage> {
         width: 40.0,
         height: 40.0,
         point: pos,
-        builder: (ctx) => const Icon(Icons.motorcycle, color: Colors.green, size: 30),
+        builder: (ctx) =>
+            const Icon(Icons.motorcycle, color: Colors.green, size: 30),
       ));
     }
 

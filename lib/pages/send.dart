@@ -67,8 +67,8 @@ class _SendPageState extends ConsumerState<SendPage> {
                 child: Column(
                   children: [
                     Padding(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -87,8 +87,8 @@ class _SendPageState extends ConsumerState<SendPage> {
                           ),
                           ElevatedButton(
                             onPressed: () {
-                              context
-                                  .push('/send/finduser'); // ใช้เส้นทางที่ถูกต้อง
+                              context.push(
+                                  '/send/finduser'); // ใช้เส้นทางที่ถูกต้อง
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF0A9876),
@@ -121,7 +121,7 @@ class _SendPageState extends ConsumerState<SendPage> {
             bottom: 16,
             child: FloatingActionButton(
               onPressed: () {
-                context.push('/send/groupmap', extra: {'transactionID': '', 'orderID': ''});
+                context.push('/send/groupmap');
               },
               backgroundColor: const Color(0xFF0A9876),
               child: const Icon(Icons.map, color: Colors.white),

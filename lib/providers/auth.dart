@@ -125,7 +125,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   void _navigateBasedOnRole(WidgetRef ref, String role) async {
     // update current location
     try {
-      if (role == "User" || role == "Rider") {
+      if (role == "Rider") {
         await updateLocation(ref);
       }
       if (role == 'User') {

@@ -1,15 +1,18 @@
 {
     "cSpell.words": [
         "bidhood",
+        "finduser",
         "Firestore",
         "fullname",
         "Geolocator",
+        "groupmap",
         "latlong",
         "mapbox",
         "maproute",
         "Polyline",
         "polylines",
         "prefs",
+        "senditem",
         "tasklist",
         "vsync"
     ]

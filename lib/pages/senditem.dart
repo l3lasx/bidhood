@@ -33,7 +33,7 @@ class _SendItemPageState extends ConsumerState<SendItemPage> {
   final TextEditingController _quantityController =
       TextEditingController(text: '1'); // Controller for the quantity field
   final List<Map<String, dynamic>> _items = []; // List to store added items
-
+  late bool isLoading = false;
   Future<void> _pickImage(ImageSource source) async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: source);
@@ -48,23 +48,34 @@ class _SendItemPageState extends ConsumerState<SendItemPage> {
   }
 
   Future<void> createNewOrder() async {
-    Map<String, dynamic> payload = {
-      "receiver_id": widget.user['user_id'],
-      "product_list": _items.map((item) {
-        return {
-          "name": item['name'],
-          "description": item['details'],
-          "image": item['image'],
-          "quantity": item['quantity'],
-        };
-      }).toList(),
-      "event": {"picture": statusPicture}
-    };
+    try {
+      setState(() {
+        isLoading = true;
+      });
+      Map<String, dynamic> payload = {
+        "receiver_id": widget.user['user_id'],
+        "product_list": _items.map((item) {
+          return {
+            "name": item['name'],
+            "description": item['details'],
+            "image": item['image'],
+            "quantity": item['quantity'],
+          };
+        }).toList(),
+        "event": {"picture": statusPicture}
+      };
 
-    var response = await ref.read(orderService).create(payload);
-    if (response['statusCode'] == 200) {
-      debugPrint("Created oder success");
-      context.go('/send?refresh=true');
+      var response = await ref.read(orderService).create(payload);
+      if (response['statusCode'] == 200) {
+        debugPrint("Created oder success");
+        context.go('/send?refresh=true');
+      }
+    } catch (err) {
+      debugPrint("Failed to create");
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -472,21 +483,23 @@ class _SendItemPageState extends ConsumerState<SendItemPage> {
                             ),
                           ),
                         ] else ...[
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.black,
-                              textStyle: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            onPressed: () {
-                              createNewOrder();
-                            },
-                            child: const Text(
-                              'ตกลง',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ),
+                          !isLoading
+                              ? ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.black,
+                                    textStyle: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    createNewOrder();
+                                  },
+                                  child: const Text(
+                                    'ตกลง',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                )
+                              : const CircularProgressIndicator()
                         ],
                       ],
                     ),
