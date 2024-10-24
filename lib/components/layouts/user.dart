@@ -46,22 +46,24 @@ class UserLayout extends ConsumerWidget {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(
-                  Icons.shopping_basket,
-                  color: Colors.white,
-                  size: 20,
-                ),
-                SizedBox(width: 8),
-                Text(
-                  'BidHood',
-                  style: TextStyle(
+                if (!context.canPop()) ...[
+                  const Icon(
+                    Icons.shopping_basket,
                     color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
+                    size: 20,
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'BidHood',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ]
               ],
             ),
             GestureDetector(
@@ -153,8 +155,7 @@ class UserLayout extends ConsumerWidget {
                     color: Colors.white,
                     size: 20,
                   ),
-                if (!isRider)
-                  const SizedBox(width: 2),
+                if (!isRider) const SizedBox(width: 2),
                 Expanded(
                   child: Text(
                     isRider ? 'Rider' : (userData['address'] ?? ''),
