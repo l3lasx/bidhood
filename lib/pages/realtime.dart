@@ -84,7 +84,7 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
             debugPrint('status is a ${data?["status"]}');
 
             if (!isRiderInWork()) {
-              var status = int.parse(data?['status'] ?? '0');
+              var status = data?['status'] ?? 0;
               if (status >= 2 && status != _currentStep) {
                 setupOrder();
                 debugPrint("Update Status By Rider");
