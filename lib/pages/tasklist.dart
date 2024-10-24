@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_init_to_null
 
 import 'dart:async';
+import 'dart:math' show sin, cos, sqrt, atan2, pi;
 
 import 'package:bidhood/components/cards/itemcardrider.dart';
 import 'package:bidhood/components/layouts/user.dart';
@@ -75,6 +76,24 @@ class _TaskListPageState extends ConsumerState<TaskListPage>
     }
   }
 
+  double _calculateHaversineDistance(double lat1, double lon1, double lat2, double lon2) {
+    const R = 6371.0; // รัศมีของโลกในกิโลเมตร
+    
+    var dLat = _toRadians(lat2 - lat1);
+    var dLon = _toRadians(lon2 - lon1);
+    
+    var a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(_toRadians(lat1)) * cos(_toRadians(lat2)) * 
+        sin(dLon / 2) * sin(dLon / 2);
+    
+    var c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return R * c; // ระยะทางในกิโลเมตร
+  }
+
+  double _toRadians(double degree) {
+    return degree * pi / 180;
+  }
+
   Future<Map<String, dynamic>> _fetchOrderData() async {
     if (!_mounted) return {'data': null};
     
@@ -87,9 +106,26 @@ class _TaskListPageState extends ConsumerState<TaskListPage>
       
       if (!_mounted) return result;
       
+      // คำนวณระยะทางใหม่สำหรับแต่ละ order
+      if (result['data']?['data'] != null) {
+        var orders = result['data']['data'] as List;
+        for (var order in orders) {
+          double riderLat = user['location']['lat'];
+          double riderLong = user['location']['long'];
+          double senderLat = order['user']['location']['lat'];
+          double senderLong = order['user']['location']['long'];
+
+          order['rider_goto_sender_distance'] = _calculateHaversineDistance(
+            riderLat, 
+            riderLong, 
+            senderLat, 
+            senderLong
+          );
+        }
+      }
+
       final orders = (result['data']?['data'] as List?)?.where((order) {
-        return order['status'] == 1 &&
-            (order['rider_goto_sender_distance'] * 1000) <= 20;
+        return order['status'] == 1;
       }).toList() ?? [];
 
       setState(() {
@@ -311,8 +347,10 @@ class _TaskListPageState extends ConsumerState<TaskListPage>
         }
 
         final orderListData = (snapshot.data!['data']['data'] as List?)
-            ?.where((order) => order['status'] == 1 && 
-                (order['rider_goto_sender_distance'] * 1000) <= 20)
+            ?.where((order) => 
+                order['status'] == 1 && 
+                order['rider_goto_sender_distance'] <= 0.02 // 20 เมตร = 0.02 กิโลเมตร
+            )
             .toList() ?? [];
 
         if (orderListData.isEmpty) {
