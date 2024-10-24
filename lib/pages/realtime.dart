@@ -81,6 +81,15 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
         (event) {
           if (mounted) {
             var data = event.data();
+            debugPrint('status is a ${data?["status"]}');
+
+            if (!isRiderInWork()) {
+              if (int.parse(data?['status'] ?? 0) != _currentStep) {
+                setupOrder();
+                debugPrint("Update Status By Rider");
+              }
+            }
+
             notifier.update(data);
             setState(() {
               currentWork = data!;
@@ -298,9 +307,18 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
           TypeAlert.warning);
       return;
     }
+
     setState(() {
       _currentStep++;
     });
+
+    try {
+      await db.collection("transactions").doc(widget.transactionID).update({
+        'status': _currentStep,
+      });
+    } catch (e) {
+      debugPrint("Error updating status order: $e");
+    }
 
     if (_currentStep == 5) {
       context.go('/tasklist');
@@ -308,6 +326,7 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
       stopRealTime();
       _locationUpdateTimer?.cancel();
     }
+
     debugPrint("${response['data']['data']}");
   }
 
