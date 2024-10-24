@@ -59,6 +59,9 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
 
   final Color mainColor = const Color(0xFF0A9830);
 
+  // Add this state variable near the top of _RealTimePageState
+  bool _isUploading = false;
+
   @override
   void initState() {
     super.initState();
@@ -106,7 +109,7 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
   }
 
   void startLocationUpdates() {
-    _locationUpdateTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+    _locationUpdateTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (isRiderInWork()) {
         updateRiderLocation();
         mapBoxKey.currentState?.focusUpdate();
@@ -281,22 +284,43 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
   }
 
   Future<void> _capturePhoto(int step) async {
-    final ImagePicker _picker = ImagePicker();
-    final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
-    if (photo != null) {
-      var upload = await ref.watch(uploadService).uploadImage(photo);
-      if (upload['statusCode'] == 200) {
-        var res = upload['data'];
-        setState(() {
-          if (step == 2) {
-            _receivePhoto = res['url'];
-          } else if (step == 3) {
-            _deliveryPhoto = res['url'];
-          } else if (step == 4) {
-            _successPhoto = res['url'];
-          }
-        });
+    if (_isUploading) return; // Prevent multiple uploads
+
+    setState(() {
+      _isUploading = true;
+    });
+
+    try {
+      final ImagePicker _picker = ImagePicker();
+      final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
+      
+      if (photo != null) {
+        var upload = await ref.watch(uploadService).uploadImage(photo);
+        if (upload['statusCode'] == 200) {
+          var res = upload['data'];
+          setState(() {
+            if (step == 2) {
+              _receivePhoto = res['url'];
+            } else if (step == 3) {
+              _deliveryPhoto = res['url'];
+            } else if (step == 4) {
+              _successPhoto = res['url'];
+            }
+          });
+        }
       }
+    } catch (e) {
+      debugPrint("Error capturing/uploading photo: $e");
+      // Optionally show error message to user
+      AlertController.show(
+        "เกิดข้อผิดพลาด", 
+        "ไม่สามารถอัพโหลดรูปภาพได้ กรุณาลองใหม่อีกครั้ง", 
+        TypeAlert.error
+      );
+    } finally {
+      setState(() {
+        _isUploading = false;
+      });
     }
   }
 
@@ -606,17 +630,7 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
                 _buildStepper(),
                 const SizedBox(height: 15),
                 (isRiderInWork() && _currentStep <= _steps.length - 1)
-                    ? SizedBox(
-                        width: MediaQuery.of(context).size.width,
-                        child: ElevatedButton(
-                          onPressed: _updateOrderStatus,
-                          style: ElevatedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            backgroundColor: Colors.green,
-                          ),
-                          child: Text(_getButtonText()),
-                        ),
-                      )
+                    ? _buildActionButton()
                     : GestureDetector(
                         onTap: () {
                           if (context.canPop()) {
@@ -651,6 +665,30 @@ class _RealTimePageState extends ConsumerState<RealTimePage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton() {
+    if (_isUploading) {
+      return Container(
+        width: MediaQuery.of(context).size.width,
+        height: 48, // Match regular button height
+        child: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: MediaQuery.of(context).size.width,
+      child: ElevatedButton(
+        onPressed: _isUploading ? null : _updateOrderStatus,
+        style: ElevatedButton.styleFrom(
+          foregroundColor: Colors.white,
+          backgroundColor: Colors.green,
+        ),
+        child: Text(_getButtonText()),
       ),
     );
   }
