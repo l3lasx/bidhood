@@ -11,8 +11,10 @@ import 'dart:async';
 import 'dart:math';
 
 class GroupMapPage extends ConsumerStatefulWidget {
+  final String type;  // Add type parameter
   const GroupMapPage({
     super.key,
+    required this.type,  // Make type required
   });
 
   @override
@@ -85,20 +87,29 @@ class _GroupMapPageState extends ConsumerState<GroupMapPage> {
         _error = null;
       });
 
-      var result = await ref.read(orderService).getMeSender();
+      // Fetch orders based on type
+      var result;
+      if (widget.type == 'send') {
+        result = await ref.read(orderService).getMeSender();
+      } else {
+        result = await ref.read(orderService).getMeReceiver();
+      }
+      
       if (!mounted) return;
 
       final orders = (result['data']?['data'] as List?)?.where((order) {
-            return (order['status'] >= 2 &&
-                (order['is_order_complete'] != true));
+            return (order['status'] >= 2 && (order['is_order_complete'] != true));
           }).toList() ??
           [];
 
+      final uniqueTransactions = orders
+          .map<String>((order) => order['order_transaction_id'].toString())
+          .toSet()
+          .toList();
+
       setState(() {
-        transactions = orders
-            .map<String>((order) => order['order_transaction_id'].toString())
-            .toList();
-        debugPrint("$transactions");
+        transactions = uniqueTransactions;
+        debugPrint("Transactions: $transactions");
         _isLoading = false;
       });
 

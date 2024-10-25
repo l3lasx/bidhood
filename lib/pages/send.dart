@@ -121,7 +121,7 @@ class _SendPageState extends ConsumerState<SendPage> {
             bottom: 16,
             child: FloatingActionButton(
               onPressed: () {
-                context.push('/send/groupmap');
+                context.push('/send/groupmap?type=send');  // Add type parameter
               },
               backgroundColor: const Color(0xFF0A9876),
               child: const Icon(Icons.map, color: Colors.white),

@@ -82,7 +82,9 @@ final GoRouter router = GoRouter(
             GoRoute(
               path: 'groupmap',
               builder: (BuildContext context, GoRouterState state) {
-                return GroupMapPage();
+                return GroupMapPage(
+                  type: state.uri.queryParameters['type'] ?? 'parcel',
+                );
               },
             ),
           ],
@@ -111,7 +113,9 @@ final GoRouter router = GoRouter(
             GoRoute(
               path: 'groupmap',
               builder: (BuildContext context, GoRouterState state) {
-                return GroupMapPage();
+                return GroupMapPage(
+                  type: state.uri.queryParameters['type'] ?? 'send',
+                );
               },
             ),
           ],
