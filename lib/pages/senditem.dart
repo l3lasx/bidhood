@@ -10,6 +10,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:bidhood/components/bottomsheet/add_item_bottomsheet.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 class SendItemPage extends ConsumerStatefulWidget {
   final Map<String, dynamic> user;
@@ -117,6 +119,60 @@ class _SendItemPageState extends ConsumerState<SendItemPage> {
     );
   }
 
+  Widget _buildLocationMap() {
+    final double? lat = widget.user['location']?['lat'];
+    final double? long = widget.user['location']?['long'];
+
+    if (lat == null || long == null) {
+      return Container(
+        height: 200,
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(20), // Updated to match Card's radius
+        ),
+        child: const Center(
+          child: Text('ไม่พบข้อมูลตำแหน่ง'),
+        ),
+      );
+    }
+
+    return Container(
+      height: 200,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20), // Updated to match Card's radius
+      ),
+      child: ClipRRect( // Added to clip the map to the rounded corners
+        borderRadius: BorderRadius.circular(20),
+        child: FlutterMap(
+          options: MapOptions(
+            center: LatLng(lat, long),
+            zoom: 15,
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.example.app',
+            ),
+            MarkerLayer(
+              markers: [
+                Marker(
+                  point: LatLng(lat, long),
+                  width: 80,
+                  height: 80,
+                  builder: (context) => const Icon(
+                    Icons.location_pin,
+                    color: Colors.red,
+                    size: 40,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return UserLayout(
@@ -150,6 +206,8 @@ class _SendItemPageState extends ConsumerState<SendItemPage> {
                     address: widget.user['address'] ?? 'No address provided',
                     phoneNumber: widget.user['phone'] ?? 'No phone number',
                   ),
+                  const SizedBox(height: 16),
+                  _buildLocationMap(),
                   const SizedBox(height: 16),
                   Row(
                     children: List.generate(3, (index) {
