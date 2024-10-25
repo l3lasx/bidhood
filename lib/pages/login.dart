@@ -18,6 +18,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   bool _obscureText = true;
   bool _showVisibilityIcon = false;
   ScaffoldMessengerState? _scaffoldMessenger;
+  bool _isLoading = false;
+
   @override
   void initState() {
     super.initState();
@@ -164,32 +166,55 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               ),
                               const SizedBox(height: 16),
                               ElevatedButton(
-                                onPressed: () async {
-                                  UserBodyForLogin userBody = UserBodyForLogin(
-                                      phone: _phoneController.text,
-                                      password: _passwordController.text);
-                                  var response = await ref
-                                      .read(authProvider.notifier)
-                                      .login(ref, userBody);
-                                  if (response['statusCode'] != 200) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                            "เข้าสู่ระบบไม่สำเร็จ ( Status ${response['statusCode']} ) ${response['data']['message']} "),
-                                      ),
-                                    );
-                                    return;
-                                  }
-                                },
+                                onPressed: _isLoading
+                                    ? null // ปิดปุ่มระหว่าง loading
+                                    : () async {
+                                        setState(() {
+                                          _isLoading = true; // เริ่ม loading
+                                        });
+                                        try {
+                                          UserBodyForLogin userBody = UserBodyForLogin(
+                                              phone: _phoneController.text,
+                                              password: _passwordController.text);
+                                          var response = await ref
+                                              .read(authProvider.notifier)
+                                              .login(ref, userBody);
+                                          if (response['statusCode'] != 200) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                    "เข้าสู่ระบบไม่สำเร็จ ( Status ${response['statusCode']} ) ${response['data']['message']} "),
+                                              ),
+                                            );
+                                            return;
+                                          }
+                                        } finally {
+                                          if (mounted) {
+                                            setState(() {
+                                              _isLoading = false; // จบ loading ไม่ว่าจะสำเร็จหรือไม่
+                                            });
+                                          }
+                                        }
+                                      },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.black,
                                   minimumSize: const Size(double.infinity, 50),
                                 ),
-                                child: const Text('เข้าสู่ระบบ',
-                                    style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold)),
+                                child: _isLoading
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Text(
+                                        'เข้าสู่ระบบ',
+                                        style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold)),
                               ),
                               const SizedBox(height: 16),
                               Row(

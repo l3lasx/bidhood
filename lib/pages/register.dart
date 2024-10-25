@@ -42,6 +42,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
   XFile? _image;
 
+  // Add this line with other state variables at the top
+  bool _isLoading = false;
+
   void _openMap() async {
     final result = await Navigator.of(context).push(
       MaterialPageRoute(
@@ -864,124 +867,142 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                      onPressed: () async {
-                                        if (_currentStep == 0 &&
-                                            _selectedUserType == null) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            const SnackBar(
-                                                content: Text(
-                                                    'กรุณาเลือกประเภทผู้ใช้')),
-                                          );
-                                        } else if (_currentStep == 1) {
-                                          if (_formKey.currentState!
-                                              .validate()) {
-                                            if (_selectedUserType == 'User' &&
-                                                _currentPosition == null) {
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
-                                                const SnackBar(
-                                                  content: Text(
-                                                      'กรุณารับตำแหน่งปัจจุบัน'),
-                                                ),
-                                              );
-                                            } else {
-                                              if (_confirmPasswordController
-                                                      .text
-                                                      .trim() !=
-                                                  _passwordController.text
-                                                      .trim()) {
+                                      onPressed: _isLoading
+                                          ? null
+                                          : () async {
+                                              if (_currentStep == 0 &&
+                                                  _selectedUserType == null) {
                                                 ScaffoldMessenger.of(context)
                                                     .showSnackBar(
                                                   const SnackBar(
-                                                    content: Text(
-                                                        'รหัสผ่านของคุณไม่เหมือนกัน'),
-                                                  ),
+                                                      content: Text(
+                                                          'กรุณาเลือกประเภทผู้ใช้')),
                                                 );
-                                                return;
-                                              }
+                                              } else if (_currentStep == 1) {
+                                                if (_formKey.currentState!
+                                                    .validate()) {
+                                                  if (_selectedUserType == 'User' &&
+                                                      _currentPosition == null) {
+                                                    ScaffoldMessenger.of(context)
+                                                        .showSnackBar(
+                                                      const SnackBar(
+                                                        content: Text(
+                                                            'กรุณารับตำแหน่งปัจจุบัน')),
+                                                      );
+                                                  } else {
+                                                    if (_confirmPasswordController
+                                                            .text
+                                                            .trim() !=
+                                                        _passwordController.text
+                                                            .trim()) {
+                                                      ScaffoldMessenger.of(context)
+                                                          .showSnackBar(
+                                                        const SnackBar(
+                                                          content: Text(
+                                                              'รหัสผ่านของคุณไม่เหมือนกัน')),
+                                                      );
+                                                      return;
+                                                    }
 
-                                              // Set address to empty if the user type is Rider
-                                              if (_selectedUserType ==
-                                                  'Rider') {
-                                                _addressController.text = '-';
-                                              }
+                                                    setState(() {
+                                                      _isLoading = true;
+                                                    });
 
-                                              var avatarPic =
-                                                  await uploadAvatar();
+                                                    try {
+                                                      if (_selectedUserType ==
+                                                          'Rider') {
+                                                        _addressController.text = '-';
+                                                      }
 
-                                              UserBodyForCreate userBody = UserBodyForCreate(
-                                                  phone: _phoneController.text
-                                                      .trim(),
-                                                  password:
-                                                      _passwordController
-                                                          .text
-                                                          .trim(),
-                                                  fullname:
-                                                      _usernameController
-                                                          .text
-                                                          .trim(),
-                                                  role: _selectedUserType,
-                                                  address: _addressController
-                                                      .text
-                                                      .trim(),
-                                                  location: _selectedUserType ==
-                                                          'User'
-                                                      ? Location(
-                                                          lat: _currentPosition!
-                                                              .latitude,
-                                                          long:
-                                                              _currentPosition!
-                                                                  .longitude)
-                                                      : null,
-                                                  carPlate: _selectedUserType ==
-                                                          'Rider'
-                                                      ? _licensePlateController
-                                                          .text
-                                                          .trim()
-                                                      : '',
-                                                  avatarPicture: avatarPic);
-                                              var response = await ref
-                                                  .read(authProvider.notifier)
-                                                  .register(userBody);
-                                              if (response['statusCode'] !=
-                                                  201) {
-                                                debugPrint(
-                                                    '${response['data']}');
-                                                ScaffoldMessenger.of(context)
-                                                    .showSnackBar(
-                                                  SnackBar(
-                                                    content: Text(
-                                                        "สมัครสมาชิกไม่สำเร็จ ( Status ${response['statusCode']} ) ${response['data']['message']} "),
-                                                  ),
-                                                );
-                                                return;
+                                                      var avatarPic =
+                                                          await uploadAvatar();
+
+                                                      UserBodyForCreate userBody = UserBodyForCreate(
+                                                          phone: _phoneController.text
+                                                              .trim(),
+                                                          password:
+                                                              _passwordController
+                                                                  .text
+                                                                  .trim(),
+                                                          fullname:
+                                                              _usernameController
+                                                                  .text
+                                                                  .trim(),
+                                                          role: _selectedUserType,
+                                                          address: _addressController
+                                                              .text
+                                                              .trim(),
+                                                          location: _selectedUserType ==
+                                                              'User'
+                                                              ? Location(
+                                                                  lat: _currentPosition!
+                                                                      .latitude,
+                                                                  long:
+                                                                      _currentPosition!
+                                                                          .longitude)
+                                                              : null,
+                                                          carPlate: _selectedUserType ==
+                                                              'Rider'
+                                                              ? _licensePlateController
+                                                                  .text
+                                                                  .trim()
+                                                              : '',
+                                                          avatarPicture: avatarPic);
+                                                      var response = await ref
+                                                          .read(authProvider.notifier)
+                                                          .register(userBody);
+                                                      if (response['statusCode'] !=
+                                                          201) {
+                                                        ScaffoldMessenger.of(context)
+                                                            .showSnackBar(
+                                                          SnackBar(
+                                                            content: Text(
+                                                                "สมัครสมาชิกไม่สำเร็จ ( Status ${response['statusCode']} ) ${response['data']['message']} "),
+                                                          ),
+                                                        );
+                                                        return;
+                                                      }
+                                                      ScaffoldMessenger.of(context)
+                                                          .showSnackBar(
+                                                        const SnackBar(
+                                                          content: Text(
+                                                              'ยินดีด้วยสมัครสมาชิกเรียบร้อย'),
+                                                        ),
+                                                      );
+                                                      setState(() {
+                                                        _currentStep += 1;
+                                                      });
+                                                    } finally {
+                                                      if (mounted) {
+                                                        setState(() {
+                                                          _isLoading = false;
+                                                        });
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              } else {
+                                                setState(() {
+                                                  _currentStep += 1;
+                                                });
                                               }
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
-                                                const SnackBar(
-                                                  content: Text(
-                                                      'ยินดีด้วยสมัครสมาชิกเรียบร้อย'),
-                                                ),
-                                              );
-                                              setState(() {
-                                                _currentStep += 1;
-                                              });
-                                            }
-                                          }
-                                        } else {
-                                          setState(() {
-                                            _currentStep += 1;
-                                          });
-                                        }
-                                      },
-                                      child: Text(
-                                        _currentStep == 1
-                                            ? 'สมัครสมาชิก'
-                                            : 'ถัดไป',
-                                        style: const TextStyle(
-                                            color: Colors.white),
-                                      ),
+                                            },
+                                      child: _isLoading
+                                          ? const SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(
+                                                color: Colors.white,
+                                                strokeWidth: 2,
+                                              ),
+                                            )
+                                          : Text(
+                                              _currentStep == 1
+                                                  ? 'สมัครสมาชิก'
+                                                  : 'ถัดไป',
+                                              style: const TextStyle(
+                                                  color: Colors.white),
+                                            ),
                                     ),
                                   ],
                                 ),
